@@ -18,7 +18,7 @@ CLI-first tool for **LLM runtime parity**. It compares inference stacks on the s
 
 It does **not** score model quality (no MMLU). It checks whether two runtimes still share the same causal path: artifact → template → special tokens → token IDs → generation / API.
 
-**Product surface is CLI only** (`text` / `json` / `quiet` / `sarif`).
+**Product surfaces:** CLI (`text` / `json` / `quiet` / `sarif`) and a **Python API** for embedding without subprocess — see [docs/api.md](docs/api.md).
 
 > **Hosting note:** the repository currently lives at  
 > [`TheusHen/eleanity`](https://github.com/TheusHen/eleanity) (alpha).  
@@ -303,6 +303,22 @@ Full reference: [docs/cli.md](docs/cli.md)
 
 ---
 
+## Python API (no subprocess)
+
+```python
+from eleanity import Eleanity
+
+client = Eleanity()  # or Eleanity.from_yaml("eleanity.yaml")
+result = client.compare(model="demo", backends=["fake", "fake"], no_gates=True)
+print(result.status, result.first_divergence, result.coverage)
+raise SystemExit(result.exit_code)
+```
+
+Low-level observe/compare: `from eleanity.api import observe_backend, compare_traces, make_scenario`.  
+Full reference: [docs/api.md](docs/api.md).
+
+---
+
 ## CI
 
 | Workflow | Role |
@@ -329,6 +345,7 @@ uv run pytest -q
 | Doc | Purpose |
 | --- | --- |
 | [docs/cli.md](docs/cli.md) | CLI reference |
+| [docs/api.md](docs/api.md) | Python client + low-level API |
 | [docs/parity-specification.md](docs/parity-specification.md) | Status + comparator tables |
 | [docs/adapter-capabilities.md](docs/adapter-capabilities.md) | Honesty matrix |
 | [docs/trace-specification.md](docs/trace-specification.md) | Trace Spec v1 |
