@@ -1,9 +1,11 @@
 name: release
 
-# Each non-release commit on main receives a patch release directly on main.
+# A release is created when main contains a version that has not been
+# published yet. Version changes are reviewed like normal source changes.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,95 +16,86 @@ concurrency:
 
 jobs:
   release:
-    # The version commit made below triggers a second run; do not recurse.
-    if: ${{ !contains(github.event.head_commit.message, '[skip auto-release]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: main
-          # This repository secret uses an account allowed to bypass the
-          # protected-main checks for the generated version commit.
-          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Resolve version and release state
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' pyproject.toml)"
+          source_version="$(sed -n 's/^__version__ = "\([^"]*\)"$/\1/p' src/eleanity/version.py)"
+          test -n "$version"
+          if [ "$version" != "$source_version" ]; then
+            echo "::error::pyproject version ($version) differs from package version ($source_version)"
+            exit 1
+          fi
+          tag="v${version}"
+          complete=false
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null && gh release view "$tag" >/dev/null 2>&1; then
+            tag_sha="$(git rev-list -n 1 "$tag")"
+            if [ "$tag_sha" != "$GITHUB_SHA" ]; then
+              echo "::error::$tag already belongs to $tag_sha, not $GITHUB_SHA"
+              exit 1
+            fi
+            complete=true
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "complete=$complete" >> "$GITHUB_OUTPUT"
 
       - uses: astral-sh/setup-uv@v7
+        if: steps.release.outputs.complete != 'true'
         with:
           enable-cache: true
 
       - name: Install Python
+        if: steps.release.outputs.complete != 'true'
         run: uv python install 3.11
 
-      - name: Allocate the next patch version
-        id: version
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          pyproject = Path("pyproject.toml")
-          text = pyproject.read_text(encoding="utf-8")
-          match = re.search(r'(?m)^version\s*=\s*"(\d+)\.(\d+)\.(\d+)"\s*$', text)
-          if not match:
-              raise SystemExit("Automatic releases require a stable X.Y.Z version in pyproject.toml")
-          major, minor, patch = (int(value) for value in match.groups())
-          version = f"{major}.{minor}.{patch + 1}"
-          pyproject.write_text(
-              text[: match.start()] + f'version = "{version}"' + text[match.end() :],
-              encoding="utf-8",
-          )
-
-          version_file = Path("src/eleanity/version.py")
-          source = version_file.read_text(encoding="utf-8")
-          updated, count = re.subn(
-              r'(?m)^__version__[ \t]*=[ \t]*"[^"]+"[ \t]*$',
-              f'__version__ = "{version}"',
-              source,
-          )
-          if count != 1:
-              raise SystemExit("Expected exactly one __version__ assignment in src/eleanity/version.py")
-          version_file.write_text(updated, encoding="utf-8")
-          Path(".release-version").write_text(version + "\n", encoding="utf-8")
-          PY
-          echo "version=$(cat .release-version)" >> "$GITHUB_OUTPUT"
-          echo "tag=v$(cat .release-version)" >> "$GITHUB_OUTPUT"
-
-      - name: Verify and build the release
+      - name: Verify and build
+        if: steps.release.outputs.complete != 'true'
         run: |
           set -euo pipefail
           uv sync --group dev
           uv run ruff check src tests
           uv run ruff format --check src tests
+          uv run mypy src/eleanity
           uv run pytest -q
           uv build
           cd dist
           sha256sum * > SHA256SUMS
 
-      - name: Commit the release version directly to main
+      - name: Verify package metadata
+        if: steps.release.outputs.complete != 'true'
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
-          set -euo pipefail
-          git config user.name "release-bot"
-          git config user.email "release-bot@users.noreply.github.com"
-          git add pyproject.toml src/eleanity/version.py
-          git commit -m "chore(release): v${VERSION} [skip auto-release]"
-          git push origin HEAD:main
+          python - <<'PY'
+          import os
+          import re
+          import zipfile
+          from pathlib import Path
 
-      - name: Create immutable tag
-        env:
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Refusing to overwrite existing tag $TAG"
-            exit 1
-          fi
-          git tag -a "$TAG" -m "Eleanity $TAG"
-          git push origin "$TAG"
+          expected = os.environ["VERSION"]
+          wheels = list(Path("dist").glob("*.whl"))
+          sdists = list(Path("dist").glob("*.tar.gz"))
+          assert len(wheels) == 1 and len(sdists) == 1
+          assert wheels[0].name.startswith(f"eleanity-{expected}-")
+          assert sdists[0].name.startswith(f"eleanity-{expected}")
+          with zipfile.ZipFile(wheels[0]) as wheel:
+              metadata = next(name for name in wheel.namelist() if name.endswith("METADATA"))
+              match = re.search(r"(?m)^Version:\s*(.+)$", wheel.read(metadata).decode("utf-8"))
+          assert match and match.group(1).strip() == expected
+          PY
 
       - name: Publish to PyPI
+        if: steps.release.outputs.complete != 'true'
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
@@ -111,12 +104,37 @@ jobs:
             echo "::error::Missing repository secret PYPI_API_TOKEN."
             exit 1
           fi
-          uv publish --token "$UV_PUBLISH_TOKEN"
+          set +e
+          output="$(uv publish --token "$UV_PUBLISH_TOKEN" 2>&1)"
+          code=$?
+          set -e
+          echo "$output"
+          if [ "$code" -ne 0 ] && ! echo "$output" | grep -qiE 'already exists|File already exists|403.*already'; then
+            exit "$code"
+          fi
 
-      - name: Create GitHub prerelease
+      - name: Create immutable tag
+        if: steps.release.outputs.complete != 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
-          gh release create "$TAG" dist/* --title "v${VERSION}" --prerelease --generate-notes
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            test "$(git rev-list -n 1 "$TAG")" = "$GITHUB_SHA"
+          else
+            git tag -a "$TAG" -m "Eleanity $TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Create GitHub release
+        if: steps.release.outputs.complete != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "v${VERSION}" --generate-notes --verify-tag
+          fi

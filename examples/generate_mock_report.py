@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -55,7 +55,7 @@ def fingerprint(backend: str, quant: str | None = None, dtype: str = "bfloat16")
 
 def main() -> Path:
     run_id = "demo-mock-ui-2026-07-10"
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     tpl_tf = (
         "<|im_start|>system\nYou are helpful.<|im_end|>\n"
@@ -63,8 +63,7 @@ def main() -> Path:
         "<|im_start|>assistant\n"
     )
     tpl_llama = (
-        "<|im_start|>system\nYou are helpful.<|im_end|>\n"
-        "<|im_start|>user\nExplique recursão em uma frase.<|im_end|>\n"
+        "<|im_start|>system\nYou are helpful.<|im_end|>\n<|im_start|>user\nExplique recursão em uma frase.<|im_end|>\n"
     )
 
     env = {
@@ -75,7 +74,7 @@ def main() -> Path:
             "transformers": "4.46.0",
             "torch": "2.4.1",
             "vllm": "0.6.3",
-            "eleanity": "0.4.0",
+            "eleanity": "1.0.0",
         },
         "cuda_available": True,
         "cuda_version": "12.4",
@@ -174,9 +173,7 @@ def main() -> Path:
                 "NOT_OBSERVABLE",
                 note="vLLM does not expose apply_chat_template text through this adapter",
             ),
-            "special_tokens": layer(
-                "NOT_OBSERVABLE", note="not exposed by OpenAI-compatible surface"
-            ),
+            "special_tokens": layer("NOT_OBSERVABLE", note="not exposed by OpenAI-compatible surface"),
             "tokens": layer(
                 "OBSERVED",
                 {
@@ -217,9 +214,7 @@ def main() -> Path:
                 },
             ),
         },
-        "warnings": [
-            "vllm: template NOT_OBSERVABLE — chat template string not exposed"
-        ],
+        "warnings": ["vllm: template NOT_OBSERVABLE — chat template string not exposed"],
         "errors": [],
         "created_at": now,
         "duration_ms": 318.2,
@@ -269,9 +264,7 @@ def main() -> Path:
                     "special_token_count": 4,
                 },
             ),
-            "logits": layer(
-                "NOT_OBSERVABLE", note="llama.cpp logits not exposed by this adapter"
-            ),
+            "logits": layer("NOT_OBSERVABLE", note="llama.cpp logits not exposed by this adapter"),
             "generation": layer(
                 "OBSERVED",
                 {
@@ -300,9 +293,7 @@ def main() -> Path:
                 },
             ),
         },
-        "warnings": [
-            "llamacpp: add_generation_prompt likely false — missing assistant turn marker"
-        ],
+        "warnings": ["llamacpp: add_generation_prompt likely false — missing assistant turn marker"],
         "errors": [],
         "created_at": now,
         "duration_ms": 255.1,
@@ -467,10 +458,7 @@ def main() -> Path:
                 {
                     "code": "MISSING_ASSISTANT_TURN_TOKEN",
                     "confidence": 0.94,
-                    "message": (
-                        "O backend candidato não adicionou o token de início "
-                        "do turno do assistente."
-                    ),
+                    "message": ("O backend candidato não adicionou o token de início do turno do assistente."),
                 },
                 {
                     "code": "ADD_GENERATION_PROMPT_DIVERGENT",
@@ -489,9 +477,7 @@ def main() -> Path:
                 "Confirm whether GGUF conversion preserved the template.",
                 "Align quantization (or switch parity policy to quantized).",
             ],
-            "hypothesis": (
-                "O backend candidato não adicionou o token de início do turno do assistente."
-            ),
+            "hypothesis": ("O backend candidato não adicionou o token de início do turno do assistente."),
             "next_test": "Compare add_generation_prompt between the backends.",
             "summary": (
                 "A primeira divergência está no template de chat, no caractere 88. "
@@ -566,9 +552,7 @@ def main() -> Path:
     # Also publish under examples/ for easy sharing
     examples = Path("examples")
     examples.mkdir(exist_ok=True)
-    examples.joinpath("report_mock.json").write_text(
-        result_path.read_text(encoding="utf-8"), encoding="utf-8"
-    )
+    examples.joinpath("report_mock.json").write_text(result_path.read_text(encoding="utf-8"), encoding="utf-8")
     html_path = write_html(result_path, examples / "report_mock.html")
     # keep run dir copy too
     write_html(result_path)

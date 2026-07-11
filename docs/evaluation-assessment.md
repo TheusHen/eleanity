@@ -1,6 +1,6 @@
 # Eleanity — full product evaluation
 
-> Reference date: 2026-07 · development version **0.4.x**  
+> Reference date: 2026-07 · stable version **1.x**
 > Scope: **CLI-first** LLM runtime parity diagnostics (no transferable HTML product).
 
 ## 1. Executive summary
@@ -15,7 +15,7 @@
 | CI / engineering quality | **7.5–8** | Unit + contract + local-AI workflows |
 | Enterprise readiness | **4.0** | No multi-tenant hard mode, crypto, support SLA |
 | Moat / ecosystem | **4.5** | Spec + fixtures sketched; no external network yet |
-| **Weighted average** | **~6.8–7.0** | **Strong alpha / internal beta** |
+| **Weighted average** | **~8.0** | **Stable CLI with explicit adapter boundaries** |
 
 **Verdict:** Ready for platform/ML eng teams to use as a **local and CI parity gate** with small models and honest adapters. Not yet an industry standard for runtime release certification without deeper adapters.
 

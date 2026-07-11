@@ -51,6 +51,7 @@ from eleanity.core.runs_index import diff_runs, list_runs, load_run
 from eleanity.models.schemas import Message, ModelSpec, ObservationTrace, ParityProfile, Scenario
 from eleanity.scenarios.loader import load_scenarios
 from eleanity.scenarios.suites import list_builtin_suites, load_suite
+from eleanity.version import __version__
 
 __all__ = ["Eleanity"]
 
@@ -454,7 +455,7 @@ class Eleanity:
         try:
             ver = pkg_version("eleanity")
         except PackageNotFoundError:
-            ver = "0.4.0"
+            ver = __version__
 
         return DoctorReport(
             ok=True,

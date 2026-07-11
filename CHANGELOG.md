@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.0
+
+### Stable release
+
+- Stable CLI and Python API contracts
+- Deterministic offline first-divergence demo
+- Windows-safe terminal output for legacy encodings
+- Required Ruff, mypy, unit, contract, regression, integration, and parity checks
+- Idempotent protected-branch release workflow without a long-lived GitHub PAT
+- Hardened optional-runtime security boundary and dependency lock
+
 ## 0.4.0
 
 ### Roadmap A+B+C foundation

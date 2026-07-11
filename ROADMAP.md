@@ -1,6 +1,6 @@
-# Roadmap (alpha)
+# Roadmap
 
-Eleanity **0.4.x** is **Development Status: Alpha**.
+Eleanity **1.x** is the stable CLI and Python API line.
 
 Hosted at **[TheusHen/eleanity](https://github.com/TheusHen/eleanity)** (public).  
 Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
@@ -25,7 +25,7 @@ Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
 - CI: required checks on `main` (ruff, unit, contract, CLI smoke)
 - GitHub: public repo, discussions, branch protection, secret scanning, private vulnerability reporting
 - Install path: `pip install git+https://github.com/TheusHen/eleanity.git` (and `uvx --from git+…`)
-- Wheel/sdist build; `release.yml` automatically bumps the patch version directly on `main`, publishes to PyPI, creates an immutable tag, and attaches SHA256SUMS + artifacts to a GitHub prerelease (`PYPI_API_TOKEN`)
+- Wheel/sdist build; `release.yml` publishes reviewed versions from `main`, creates immutable tags, and attaches SHA256SUMS + artifacts to GitHub Releases (`PYPI_API_TOKEN`)
 
 ## Explicitly incomplete
 
@@ -41,11 +41,10 @@ Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
 
 ## Near-term
 
-1. Configure `PYPI_API_TOKEN` and `RELEASE_PAT` (with protected-branch bypass)
-2. Transfer repository to GitHub org `eleanity` when the org exists
-3. Deepen Transformers + one HTTP adapter (template/tokenize paths)
-4. Expand public fixtures with known real-world divergences
-5. Make mypy a hard CI gate after typing debt is cleared
+1. Transfer repository to GitHub org `eleanity` when the org exists
+2. Deepen Transformers + one HTTP adapter (template/tokenize paths)
+3. Expand public fixtures with known real-world divergences
+4. Publish a live capability certification matrix
 
 ## Non-goals
 
