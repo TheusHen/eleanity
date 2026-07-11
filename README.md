@@ -57,8 +57,18 @@ uv run eleanity --help
 
 ### PyPI
 
-PyPI publish is wired (`publish.yml` on `v*` tags) but **not yet released**.  
-Until `pip install eleanity` resolves on PyPI, use **git install** above. See [ROADMAP.md](ROADMAP.md).
+After the first successful tag publish:
+
+```bash
+pip install eleanity
+# pre-release / alpha pin if needed:
+pip install "eleanity==0.4.0"
+```
+
+Publish is automatic: push a `v*` tag (or run the **publish** workflow manually).  
+Repo secret required: **`PYPI_API_TOKEN`** (`pypi-…` from [pypi.org/manage/account/token](https://pypi.org/manage/account/token/)).
+
+Until that secret is set and a release is published, use **git install** above.
 
 Requires **Python 3.11+**.
 
@@ -273,7 +283,7 @@ Full reference: [docs/cli.md](docs/cli.md)
 | `ci.yml` typecheck job | **Informational mypy** (does not fail the workflow in 0.4.x) |
 | `parity-local-ai.yml` | Downloads SmolLM2-135M and runs real Transformers self-parity |
 | `parity-public-fixtures.yml` | Public fixture suites |
-| `publish.yml` | Build/publish on `v*` tags when PyPI credentials exist |
+| `publish.yml` | Build + publish to PyPI on `v*` tags (secret `PYPI_API_TOKEN`) |
 | `eleanity.yml` | Reusable monorepo gate |
 
 Local:

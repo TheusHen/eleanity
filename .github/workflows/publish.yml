@@ -1,9 +1,10 @@
 name: publish
 
-# Build on every v* tag / manual dispatch.
-# Publish to PyPI via Trusted Publishing (OIDC) when the `pypi` environment
-# is linked on https://pypi.org/manage/project/eleanity/settings/publishing/
-# Optional fallback: repository secret PYPI_API_TOKEN.
+# Automatic PyPI publish when a v* tag is pushed.
+# Manual: Actions → publish → Run workflow (use after adding the secret).
+#
+# Required secret (repo → Settings → Secrets and variables → Actions):
+#   PYPI_API_TOKEN  =  pypi-...  (PyPI account → API tokens, scope: entire account or project:eleanity)
 
 on:
   push:
@@ -11,17 +12,25 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-      - run: uv python install 3.11
-      - run: uv sync --group dev
-      - run: uv build
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Build sdist + wheel
+        run: uv build
+
       - name: Verify dist
         run: |
           ls -la dist/
@@ -32,52 +41,23 @@ jobs:
           assert wheels and sdists, "expected wheel + sdist"
           print("ok:", [p.name for p in wheels + sdists])
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
 
-  publish-pypi:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/eleanity
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/download-artifact@v4
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
-      - name: Publish with token (if secret present)
-        id: token_publish
+          retention-days: 14
+
+      - name: Publish to PyPI
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          if [ -n "${UV_PUBLISH_TOKEN:-}" ]; then
-            uv publish --token "$UV_PUBLISH_TOKEN"
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "No PYPI_API_TOKEN; will try Trusted Publishing (OIDC)."
+          if [ -z "${UV_PUBLISH_TOKEN:-}" ]; then
+            echo "::error::Missing repository secret PYPI_API_TOKEN."
+            echo "Create a token at https://pypi.org/manage/account/token/"
+            echo "Then: gh secret set PYPI_API_TOKEN -R TheusHen/eleanity"
+            echo "Or: GitHub → Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
           fi
-      - name: Publish with Trusted Publishing (OIDC)
-        if: steps.token_publish.outputs.published != 'true'
-        uses: pypa/gh-action-pypi-publish@release/v1
-        continue-on-error: true
-        with:
-          packages-dir: dist/
-          skip-existing: true
-      - name: Note if publish skipped
-        if: steps.token_publish.outputs.published != 'true'
-        run: |
-          echo "If OIDC publish failed, register Trusted Publisher on PyPI:"
-          echo "  Owner: TheusHen"
-          echo "  Repository: eleanity"
-          echo "  Workflow: publish.yml"
-          echo "  Environment: pypi"
-          echo "Artifacts remain attached to this run."
-          ls -la dist/
+          uv publish --token "$UV_PUBLISH_TOKEN"
