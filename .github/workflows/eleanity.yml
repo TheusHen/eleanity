@@ -129,7 +129,7 @@ jobs:
 
       - name: Upload SARIF
         if: always() && steps.compare.outputs.run_id != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: .eleanity/runs/${{ steps.compare.outputs.run_id }}/results.sarif
         continue-on-error: true
