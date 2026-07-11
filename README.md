@@ -334,7 +334,7 @@ Full reference: [docs/api.md](docs/api.md).
 
 | Workflow | Role |
 | --- | --- |
-| `ci.yml` | **Required quality:** ruff + unit/contract/integration + CLI smoke |
+| `ci.yml` | **Required quality:** actionlint + ruff + mypy + unit/contract/integration + CLI smoke |
 | `ci.yml` typecheck job | Required mypy gate |
 | `parity-local-ai.yml` | Downloads SmolLM2-135M and runs real Transformers self-parity |
 | `parity-public-fixtures.yml` | Public fixture suites |
