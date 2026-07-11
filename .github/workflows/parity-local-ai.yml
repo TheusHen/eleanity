@@ -192,7 +192,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: local-ai-${{ matrix.mode }}
           path: |
@@ -233,7 +233,7 @@ jobs:
           print(f"policy=${policy} status={s.get('status')} coverage={s.get('coverage_percent')} confidence={s.get('confidence')}")
           PY
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: policy-matrix-fake
           path: .eleanity/ci-out/policies/
