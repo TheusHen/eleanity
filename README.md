@@ -2,6 +2,8 @@
 
 **Same model. Same input. Find the first causal divergence.**
 
+![Eleanity demo comparing Ollama and llama.cpp](docs/demo/demo.gif)
+
 [![CI](https://github.com/TheusHen/eleanity/actions/workflows/ci.yml/badge.svg)](https://github.com/TheusHen/eleanity/actions/workflows/ci.yml)
 [![Local AI parity](https://github.com/TheusHen/eleanity/actions/workflows/parity-local-ai.yml/badge.svg)](https://github.com/TheusHen/eleanity/actions/workflows/parity-local-ai.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
