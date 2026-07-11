@@ -104,7 +104,7 @@ def assess_impact(
     """Compute functional impact independent of internal parity label."""
 
     parity = parity_status.value if isinstance(parity_status, ParityResult) else str(parity_status)
-    if parity in {"PASS", "PASS_WITH_TOLERANCE"}:
+    if parity in {"PASS", "PASS_WITH_TOLERANCE", "PASS_WITH_LIMITED_COVERAGE"}:
         return ImpactAssessment(
             parity=parity,
             impact=FunctionalImpact.NONE,
