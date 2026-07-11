@@ -267,6 +267,10 @@ More write-ups: [docs/examples/first-divergence.md](docs/examples/first-divergen
 
 Full table: [docs/adapter-capabilities.md](docs/adapter-capabilities.md).
 
+`vllm` and `llamacpp` are HTTP-client adapters. Run the corresponding server
+runtime in its own restricted environment; Eleanity does not install either
+server runtime as an extra.
+
 | Adapter | template | tokens | logits | generation | streaming | API |
 | --- | --- | --- | --- | --- | --- | --- |
 | fake | yes | yes | no | yes | yes | partial |
