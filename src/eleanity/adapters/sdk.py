@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from eleanity.adapters.base import BackendAdapter, CapabilitySet, HealthcheckResult
-from eleanity.models.schemas import ArtifactFingerprint, LayerObservation, LayerState, Scenario
+from eleanity.models.schemas import ArtifactFingerprint, LayerObservation, LayerState, Message, Scenario
 
 REQUIRED_METHODS = (
     "fingerprint",
@@ -77,7 +77,7 @@ def check_adapter_compliance(
 
     scenario = scenario or Scenario(
         name="sdk-compliance",
-        messages=[{"role": "user", "content": "hello"}],
+        messages=[Message(role="user", content="hello")],
         parameters={"max_tokens": 1, "temperature": 0},
         observe=["template", "tokens", "generation"],
     )

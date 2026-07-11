@@ -20,7 +20,7 @@ def build_sarif(data: dict[str, Any]) -> dict[str, Any]:
     elif status == "PASS":
         level = "note"
 
-    results = []
+    results: list[dict[str, Any]] = []
     if status != "PASS":
         message = diagnosis.get("summary") or diagnosis.get("hypothesis") or status
         location_text = first or "parity"
@@ -59,10 +59,10 @@ def build_sarif(data: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    rules = []
-    seen = set()
+    rules: list[dict[str, Any]] = []
+    seen: set[str] = set()
     for item in results:
-        rid = item["ruleId"]
+        rid = str(item["ruleId"])
         if rid in seen:
             continue
         seen.add(rid)

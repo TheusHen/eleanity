@@ -27,18 +27,22 @@ from eleanity.cli.resolve import (
     load_project_optional,
     resolve_compare,
 )
+from eleanity.cli.stdio import configure_cli_stdio
 from eleanity.config import find_project_file, load_project, write_default_project
+from eleanity.core.demo import render_template_divergence_demo, run_template_divergence_demo
 from eleanity.core.engine import CompareEngine
 from eleanity.core.golden import golden_gate, save_golden
 from eleanity.core.pull import pull_model
 from eleanity.core.runs_index import diff_runs, list_runs, load_run
 from eleanity.fingerprints.gguf import inspect_gguf
-from eleanity.models.schemas import ObservationTrace, ParityProfile, Scenario
+from eleanity.models.schemas import Message, ObservationTrace, ParityProfile, Scenario
 from eleanity.playbook import get_playbook_entry, render_playbook_markdown
 from eleanity.reporters.sarif import write_sarif
 from eleanity.scenarios import load_scenarios
 from eleanity.scenarios.suites import list_builtin_suites, load_suite
 from eleanity.version import __version__
+
+configure_cli_stdio()
 
 app = typer.Typer(
     help="Same model. Same input. Find the first divergence. (CLI-first parity diagnostics)",
@@ -96,7 +100,7 @@ def _prepare_scenario(scenario: Scenario | None, resolved) -> Scenario:
     if scenario is None:
         scenario = Scenario(
             name="compare",
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[Message(role="user", content="Hello")],
             observe=resolved.observe or ["artifact", "template", "special_tokens", "tokens", "generation"],
             parity_profile=resolved.policy,
         )
@@ -114,6 +118,22 @@ def _prepare_scenario(scenario: Scenario | None, resolved) -> Scenario:
             }
         )
     return scenario
+
+
+@app.command()
+def demo(format: str = FormatOpt) -> None:
+    """Run a deterministic offline first-divergence demonstration."""
+
+    result = run_template_divergence_demo()
+    if format == "json":
+        typer.echo(json.dumps(result, indent=2, sort_keys=True))
+    elif format == "quiet":
+        typer.echo(
+            f"status={result['status']} first_divergence={result['first_divergence']} "
+            f"probable_cause={result['probable_cause']}"
+        )
+    else:
+        console.print(render_template_divergence_demo(result))
 
 
 @app.command()
@@ -492,7 +512,7 @@ def compare(
                 table.add_column("run_id")
                 table.add_column("exit")
                 for row in rows:
-                    table.add_row(row["scenario"], row["run_id"][:8], str(row["exit"]))
+                    table.add_row(str(row["scenario"]), str(row["run_id"])[:8], str(row["exit"]))
                 console.print(table)
             raise typer.Exit(code)
 
@@ -624,7 +644,7 @@ def test_scenario(
                 tokenizer_only=resolved.tokenizer_only,
             )
             status = getattr(result.diagnosis, "status", None)
-            status_v = status.value if hasattr(status, "value") else str(status)
+            status_v = str(getattr(status, "value", status or ""))
             exit_c = emit_compare_result(
                 fmt="quiet",
                 traces=result.traces,
@@ -651,7 +671,7 @@ def test_scenario(
             table.add_column("run_id")
             table.add_column("exit")
             for row in rows:
-                table.add_row(row["name"], row["status"], row["run_id"][:8], str(row["exit"]))
+                table.add_row(str(row["name"]), str(row["status"]), str(row["run_id"])[:8], str(row["exit"]))
             console.print(table)
         raise typer.Exit(code)
     except typer.Exit:
@@ -779,7 +799,7 @@ def compare_endpoints(
         os.environ["ELEANITY_LLAMACPP_URL"] = endpoint_b.rstrip("/")
         scenario = Scenario(
             name="endpoint-compare",
-            messages=[{"role": "user", "content": "Hello from Eleanity"}],
+            messages=[Message(role="user", content="Hello from Eleanity")],
             parameters={"temperature": 0, "max_tokens": 16, "seed": 42},
             observe=[x.strip() for x in observe.split(",") if x.strip()],
             parity_policy=ParityProfile.API_CONFORMANCE,
@@ -916,7 +936,7 @@ def vendor_check(
         )
         scenario = Scenario(
             name="vendor-check",
-            messages=[{"role": "user", "content": "Reply with one short sentence."}],
+            messages=[Message(role="user", content="Reply with one short sentence.")],
             parameters={"temperature": 0, "max_tokens": 32, "seed": 42},
             observe=observe_layers,
             parity_policy=ParityProfile.API_CONFORMANCE if not tokenizer_only else ParityProfile.STRICT,
@@ -1060,7 +1080,7 @@ def batch(
             for m, b, sc in jobs:
                 result = engine.compare(m, b, scenario=sc, tokenizer_only=tokenizer_only)
                 status = getattr(result.diagnosis, "status", None)
-                value = status.value if hasattr(status, "value") else str(status)
+                value = str(getattr(status, "value", status or ""))
                 if value == "ERROR":
                     had_error = True
                     failed += 1
@@ -1201,9 +1221,9 @@ def check_golden_cmd(
         scenario_meta = data.get("scenario") or {}
         scenario = Scenario(
             name=scenario_meta.get("name") or "golden-check",
-            messages=[{"role": "user", "content": "x"}],
+            messages=[Message(role="user", content="x")],
             observe=[item.strip() for item in layers.split(",") if item.strip()],
-            parity_profile=scenario_meta.get("parity_profile") or "strict",
+            parity_profile=ParityProfile(str(scenario_meta.get("parity_profile") or "strict")),
             tolerance=scenario_meta.get("tolerance"),
         )
         report = golden_gate(
@@ -1409,9 +1429,9 @@ def replay(
         # Reconstruct scenario
         sc = Scenario(
             name=scenario_meta.get("name") or "replay",
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[Message(role="user", content="Hello")],
             observe=observe or ["artifact", "template", "tokens", "generation"],
-            parity_profile=policy,
+            parity_profile=ParityProfile(str(policy)),
             parameters=scenario_meta.get("parameters") or {"temperature": 0, "max_tokens": 32, "seed": 42},
         )
         resolved = resolve_compare(

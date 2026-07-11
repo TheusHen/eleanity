@@ -6,7 +6,7 @@
 [![Local AI parity](https://github.com/TheusHen/eleanity/actions/workflows/parity-local-ai.yml/badge.svg)](https://github.com/TheusHen/eleanity/actions/workflows/parity-local-ai.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha-orange.svg)](ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](ROADMAP.md)
 
 CLI-first tool for **LLM runtime parity**. It compares inference stacks on the same scenario and reports:
 
@@ -20,8 +20,24 @@ It does **not** score model quality (no MMLU). It checks whether two runtimes st
 
 **Product surfaces:** CLI (`text` / `json` / `quiet` / `sarif`) and a **Python API** for embedding without subprocess — see [docs/api.md](docs/api.md).
 
-> **Hosting note:** the repository currently lives at  
-> [`TheusHen/eleanity`](https://github.com/TheusHen/eleanity) (alpha).  
+## Try the core idea offline
+
+```bash
+uvx eleanity demo
+```
+
+```text
+status:            DIVERGENT
+first_divergence:  template
+baseline_template: 'user: Hello\nassistant:'
+candidate_template:'user: Hello'
+probable_cause:    CHAT_TEMPLATE_DIFFERENT (confidence=0.92)
+```
+
+No model download, GPU, server, account, or network endpoint is required.
+
+> **Hosting note:** the repository currently lives at
+> [`TheusHen/eleanity`](https://github.com/TheusHen/eleanity).
 > Transfer to `eleanity/eleanity` is planned when the org is available ([ROADMAP.md](ROADMAP.md)).
 
 ---
@@ -59,30 +75,28 @@ uv run eleanity --help
 
 ```bash
 pip install eleanity
-# pin a specific alpha release if needed:
-pip install "eleanity==0.4.0"
+# pin the stable API line:
+pip install "eleanity==1.0.0"
 ```
 
-Every non-release commit pushed to `main` is released automatically through
-[`release.yml`](.github/workflows/release.yml). The workflow increments the
-patch version directly on `main`, runs the quality suite, publishes to PyPI,
-then creates an immutable `vX.Y.Z` tag and GitHub prerelease with the wheel,
-sdist, and SHA256 checksums.
+When a reviewed version change reaches `main`, [`release.yml`](.github/workflows/release.yml)
+runs the complete quality suite, publishes that exact version to PyPI, then
+creates an immutable `vX.Y.Z` tag and GitHub Release with the wheel, sdist, and
+SHA256 checksums. The workflow is idempotent and uses the built-in GitHub token;
+it never writes version commits directly to the protected branch.
 
 ```bash
 # Required repository secret (once):
 gh secret set PYPI_API_TOKEN -R TheusHen/eleanity
 ```
 
-Configure a fine-grained `RELEASE_PAT` for an account allowed to bypass the
-protected-branch checks when Actions writes the generated version commit. The
-job verifies wheel/sdist metadata and writes **SHA256SUMS**.
+The job verifies wheel/sdist metadata and writes **SHA256SUMS**.
 
 Requires **Python 3.11+**.
 
 ---
 
-## 60-second offline check
+## Offline parity check
 
 ```bash
 uv run eleanity compare --model demo --backends fake,fake \
@@ -320,11 +334,11 @@ Full reference: [docs/api.md](docs/api.md).
 
 | Workflow | Role |
 | --- | --- |
-| `ci.yml` | **Required quality:** ruff + unit/contract/integration + CLI smoke |
-| `ci.yml` typecheck job | **Informational mypy** (does not fail the workflow in 0.4.x) |
+| `ci.yml` | **Required quality:** actionlint + ruff + mypy + unit/contract/integration + CLI smoke |
+| `ci.yml` typecheck job | Required mypy gate |
 | `parity-local-ai.yml` | Downloads SmolLM2-135M and runs real Transformers self-parity |
 | `parity-public-fixtures.yml` | Public fixture suites |
-| `release.yml` | Automatic patch version, PyPI prerelease, immutable tag, and GitHub Release for each `main` commit |
+| `release.yml` | Idempotent PyPI publish, immutable tag, and GitHub Release for reviewed versions |
 | `eleanity.yml` | Reusable monorepo gate |
 
 Local:
@@ -346,7 +360,7 @@ uv run pytest -q
 | [docs/parity-specification.md](docs/parity-specification.md) | Status + comparator tables |
 | [docs/adapter-capabilities.md](docs/adapter-capabilities.md) | Honesty matrix |
 | [docs/trace-specification.md](docs/trace-specification.md) | Trace Spec v1 |
-| [ROADMAP.md](ROADMAP.md) | Alpha boundaries |
+| [ROADMAP.md](ROADMAP.md) | Stable roadmap and known boundaries |
 | [SUPPORT.md](SUPPORT.md) | Where to get help |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting |
 

@@ -23,8 +23,10 @@ def compare_api(left: dict[str, Any], right: dict[str, Any]) -> Comparison:
         issues.append("candidate_http_error")
 
     # Usage coherence
-    left_usage = left.get("usage") if isinstance(left.get("usage"), dict) else {}
-    right_usage = right.get("usage") if isinstance(right.get("usage"), dict) else {}
+    left_usage_raw = left.get("usage")
+    right_usage_raw = right.get("usage")
+    left_usage: dict[str, Any] = left_usage_raw if isinstance(left_usage_raw, dict) else {}
+    right_usage: dict[str, Any] = right_usage_raw if isinstance(right_usage_raw, dict) else {}
     if left.get("has_usage") and right.get("has_usage"):
         for field in ("prompt_tokens", "completion_tokens", "total_tokens"):
             if field in left_usage and field in right_usage:

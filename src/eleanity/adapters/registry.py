@@ -99,9 +99,7 @@ def load_plugins() -> None:
             register_adapter(name, factory)
         try:
             eps = metadata.entry_points()
-            selected = (
-                eps.select(group="eleanity.adapters") if hasattr(eps, "select") else eps.get("eleanity.adapters", [])
-            )
+            selected = eps.select(group="eleanity.adapters")
             for ep in selected:
                 try:
                     loaded = ep.load()

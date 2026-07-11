@@ -126,11 +126,11 @@ def bisect_model_revisions(
 
     # For real HF revisions, adapters use model id + revision via scenario.model
     def probe_scenario(revision: str) -> tuple[bool, str, str | None, str | None]:
-        from eleanity.models.schemas import ModelSpec
+        from eleanity.models.schemas import Message, ModelSpec
 
         base_sc = scenario or Scenario(
             name="bisect",
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[Message(role="user", content="Hello")],
             observe=["artifact", "template", "tokens"],
             parameters={"temperature": 0, "max_tokens": 8, "seed": 42},
         )

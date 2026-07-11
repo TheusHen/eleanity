@@ -96,6 +96,12 @@ jobs:
           uv sync --group dev --extra transformers
           uv run python -c "import torch, transformers; print('torch', torch.__version__, 'cuda', torch.cuda.is_available()); print('transformers', transformers.__version__)"
 
+      - name: Audit optional runtime dependencies
+        if: matrix.mode == 'full'
+        # CVE-2025-3000 affects torch.jit.script, which Eleanity forbids by
+        # regression test. Upstream currently publishes no patched version.
+        run: uv run pip-audit --ignore-vuln CVE-2025-3000
+
       - name: HF token (optional)
         if: ${{ env.HF_TOKEN != '' }}
         env:

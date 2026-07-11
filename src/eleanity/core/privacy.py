@@ -8,7 +8,7 @@ import shutil
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 SECRET_PATTERNS = [
     re.compile(r"(?i)(api[_-]?key|authorization|bearer)\s*[:=]\s*['\"]?([^\s'\"]+)"),
@@ -84,7 +84,7 @@ def scrub_obj(value: Any) -> Any:
 
 
 def apply_privacy_to_payload(payload: dict[str, Any], policy: PrivacyPolicy) -> dict[str, Any]:
-    data = scrub_obj(payload)
+    data = cast(dict[str, Any], scrub_obj(payload))
     if policy.redact_input or policy.redact_output:
         for trace in data.get("traces") or []:
             layers = trace.get("layers") or {}

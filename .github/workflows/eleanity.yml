@@ -107,11 +107,13 @@ jobs:
           STATUS=$(echo "$OUTPUT" | sed -n 's/.*status=\([^ ]*\).*/\1/p' | tail -n1)
           COVERAGE=$(echo "$OUTPUT" | sed -n 's/.*coverage=\([^ ]*\).*/\1/p' | tail -n1)
           CONF=$(echo "$OUTPUT" | sed -n 's/.*confidence=\([^ ]*\).*/\1/p' | tail -n1)
-          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
-          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
-          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
-          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
-          echo "confidence=$CONF" >> "$GITHUB_OUTPUT"
+          {
+            echo "run_id=$RUN_ID"
+            echo "exit_code=$CODE"
+            echo "status=$STATUS"
+            echo "coverage=$COVERAGE"
+            echo "confidence=$CONF"
+          } >> "$GITHUB_OUTPUT"
           {
             echo "### Eleanity parity gate"
             echo ""

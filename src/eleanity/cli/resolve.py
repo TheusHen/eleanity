@@ -135,6 +135,7 @@ def resolve_compare(
     backend_list = [b.strip() for b in backends_str.split(",") if b.strip()]
 
     # Baseline
+    resolved_baseline: str | None
     if baseline:
         resolved_baseline = baseline
     elif env_baseline:

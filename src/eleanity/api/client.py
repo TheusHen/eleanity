@@ -48,9 +48,10 @@ from eleanity.config.project import EleanityProject, find_project_file, load_pro
 from eleanity.core.engine import CompareEngine
 from eleanity.core.golden import golden_gate, save_golden
 from eleanity.core.runs_index import diff_runs, list_runs, load_run
-from eleanity.models.schemas import ModelSpec, ObservationTrace, Scenario
+from eleanity.models.schemas import Message, ModelSpec, ObservationTrace, ParityProfile, Scenario
 from eleanity.scenarios.loader import load_scenarios
 from eleanity.scenarios.suites import list_builtin_suites, load_suite
+from eleanity.version import __version__
 
 __all__ = ["Eleanity"]
 
@@ -82,6 +83,7 @@ class Eleanity:
         offline: bool = False,
     ):
         self._config_path = Path(config) if config is not None else None
+        self._project: EleanityProject | None
         if project is not None:
             self._project = project
         elif self._config_path is not None:
@@ -122,7 +124,7 @@ class Eleanity:
     def with_options(self, **kwargs: Any) -> Eleanity:
         """Return a copy with selected fields overridden (immutable-style)."""
 
-        data = {
+        data: dict[str, Any] = {
             "config": self._config_path,
             "project": self._project,
             "model": self.model,
@@ -232,7 +234,7 @@ class Eleanity:
         if scenario is None:
             scenario = Scenario(
                 name="compare",
-                messages=[{"role": "user", "content": "Hello"}],
+                messages=[Message(role="user", content="Hello")],
                 observe=resolved.observe or ["artifact", "template", "special_tokens", "tokens", "generation"],
                 parity_profile=resolved.policy,
             )
@@ -453,7 +455,7 @@ class Eleanity:
         try:
             ver = pkg_version("eleanity")
         except PackageNotFoundError:
-            ver = "0.4.0"
+            ver = __version__
 
         return DoctorReport(
             ok=True,
@@ -492,7 +494,7 @@ class Eleanity:
             from eleanity.reporters.sarif import write_sarif
 
             result_path = runs_dir / str(data.get("run_id") or run_id) / "result.json"
-            return write_sarif(result_path)
+            return str(write_sarif(result_path))
         raise ConfigError(f"unsupported report format: {fmt}")
 
     def replay(self, run_id: str, *, no_gates: bool | None = None) -> CompareOutcome:
@@ -517,9 +519,9 @@ class Eleanity:
         baseline = data.get("baseline_backend") or backends[0]
         sc = Scenario(
             name=scenario_meta.get("name") or "replay",
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[Message(role="user", content="Hello")],
             observe=observe or ["artifact", "template", "tokens", "generation"],
-            parity_profile=policy,
+            parity_profile=ParityProfile(str(policy)),
             parameters=scenario_meta.get("parameters") or {"temperature": 0, "max_tokens": 32, "seed": 42},
         )
         return self.compare(
@@ -704,7 +706,7 @@ class Eleanity:
             scenario=selected,
             repetitions=repetitions,
         )
-        return report.to_dict() if hasattr(report, "to_dict") else dict(report)
+        return report.to_dict()
 
     def inspect(
         self,
@@ -741,14 +743,11 @@ class Eleanity:
 
     def list_runs(self) -> list[dict[str, Any]]:
         rows = list_runs(self._runs_dir())
-        out = []
+        out: list[dict[str, Any]] = []
         for row in rows:
-            if hasattr(row, "model_dump"):
-                out.append(row.model_dump(mode="json"))
-            elif hasattr(row, "__dict__"):
-                out.append(dict(row.__dict__))
-            else:
-                out.append(dict(row))
+            payload = dict(row.__dict__)
+            payload["path"] = str(row.path)
+            out.append(payload)
         return out
 
     def get_run(self, run_id: str) -> dict[str, Any]:
@@ -792,9 +791,9 @@ class Eleanity:
         sc_meta = data.get("scenario") or {}
         sc = Scenario(
             name=sc_meta.get("name") or "golden-check",
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[Message(role="user", content="Hello")],
             observe=sc_meta.get("observe") or ["template", "tokens"],
-            parity_profile=sc_meta.get("parity_profile") or "strict",
+            parity_profile=ParityProfile(str(sc_meta.get("parity_profile") or "strict")),
         )
         return golden_gate(
             trace,
@@ -808,16 +807,7 @@ class Eleanity:
 
         adapter = create_adapter(backend, model)
         report = certify_runtime(adapter, model=model)
-        if hasattr(report, "to_dict"):
-            return report.to_dict()
-        if hasattr(report, "model_dump"):
-            return report.model_dump(mode="json")
-        return {
-            "backend": backend,
-            "passed": getattr(report, "passed", None),
-            "level": getattr(report, "level", None),
-            "report": str(report),
-        }
+        return report.to_dict()
 
     def capture(
         self,
@@ -838,11 +828,7 @@ class Eleanity:
         from eleanity.spec.parity import policy_comparator_set
 
         spec = policy_comparator_set(policy)
-        if hasattr(spec, "to_dict"):
-            return spec.to_dict()
-        if hasattr(spec, "model_dump"):
-            return spec.model_dump(mode="json")
-        return {"policy": policy, "spec": str(spec)}
+        return spec.to_dict()
 
     def playbook(self, code: str) -> str:
         from eleanity.playbook import get_playbook_entry, render_playbook_markdown
@@ -852,7 +838,7 @@ class Eleanity:
             raise NotFoundError(f"unknown playbook code: {code}")
         if isinstance(entry, str):
             return entry
-        return render_playbook_markdown(entry) if callable(render_playbook_markdown) else str(entry)
+        return render_playbook_markdown(code)
 
     def suites(self) -> list[str]:
         """List known suite names (project + built-ins when available)."""
@@ -869,11 +855,9 @@ class Eleanity:
                     if name:
                         names.append(str(name))
         try:
-            for item in list_builtin_suites():
-                if isinstance(item, dict) and item.get("name"):
-                    names.append(str(item["name"]))
-                elif isinstance(item, str):
-                    names.append(item)
+            for builtin in list_builtin_suites():
+                if builtin.get("name"):
+                    names.append(str(builtin["name"]))
         except Exception:  # noqa: BLE001 — built-ins optional
             pass
         seen: set[str] = set()

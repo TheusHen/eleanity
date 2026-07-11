@@ -63,7 +63,7 @@ def classify_unobserved(
 
     if not requested:
         return ParityResult.NOT_REQUESTED
-    states = []
+    states: list[LayerState | None] = []
     for obs in (left, right):
         if obs is None:
             states.append(None)

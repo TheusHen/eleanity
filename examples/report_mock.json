@@ -45,7 +45,7 @@
       "transformers": "4.46.0",
       "torch": "2.4.1",
       "vllm": "0.6.3",
-      "eleanity": "0.4.0"
+      "eleanity": "1.0.0"
     },
     "cuda_available": true,
     "cuda_version": "12.4",
@@ -98,7 +98,7 @@
           "transformers": "4.46.0",
           "torch": "2.4.1",
           "vllm": "0.6.3",
-          "eleanity": "0.4.0"
+          "eleanity": "1.0.0"
         },
         "cuda_available": true,
         "cuda_version": "12.4",
@@ -418,7 +418,7 @@
           "transformers": "4.46.0",
           "torch": "2.4.1",
           "vllm": "0.6.3",
-          "eleanity": "0.4.0"
+          "eleanity": "1.0.0"
         },
         "cuda_available": true,
         "cuda_version": "12.4",
@@ -679,7 +679,7 @@
           "transformers": "4.46.0",
           "torch": "2.4.1",
           "vllm": "0.6.3",
-          "eleanity": "0.4.0"
+          "eleanity": "1.0.0"
         },
         "cuda_available": true,
         "cuda_version": "12.4",

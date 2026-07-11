@@ -4,8 +4,8 @@
 
 | Version | Supported |
 | --- | --- |
-| 0.4.x (alpha) | Yes |
-| < 0.4 | Best effort only |
+| 1.x | Yes |
+| < 1.0 | Best effort only |
 
 ## Reporting a vulnerability
 
@@ -36,3 +36,15 @@ Eleanity is **local-first**. Never attach:
 - full unredacted traces from customer systems  
 
 Prefer `eleanity report <run-id> --format json` with redaction enabled, or a minimized scenario YAML.
+
+## Optional runtime dependencies
+
+PyTorch is installed only by the optional `transformers` extra. Eleanity uses
+eager inference under `torch.inference_mode()` and does not invoke TorchScript,
+`torch.jit.script`, or load serialized TorchScript programs. A unit guard scans
+the shipped source to prevent accidental introduction of the affected JIT API.
+
+Until PyTorch publishes a version identified as patched for CVE-2025-3000,
+keep model/cache directories writable only by the account running Eleanity and
+do not execute untrusted model code. The minimum supported PyTorch version is
+kept above the specifically reported 2.6.0 release.

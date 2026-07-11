@@ -1,6 +1,6 @@
 # Support
 
-Eleanity is an **alpha** CLI project. Support is community- and maintainer-best-effort.
+Eleanity is a stable open-source CLI project. Support is community- and maintainer-best-effort.
 
 ## Where to ask
 
@@ -18,7 +18,7 @@ Eleanity is an **alpha** CLI project. Support is community- and maintainer-best-
 3. Redact prompts and secrets  
 4. Include model id, revision, backend names, and policy  
 
-## What we cannot promise in alpha
+## Support boundaries
 
 - SLA response times  
 - Compatibility with every remote server quirk  

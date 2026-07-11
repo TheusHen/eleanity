@@ -52,11 +52,8 @@ def print_terminal(
     candidate = traces[1] if len(traces) > 1 else None
     scenario_name = scenario.name if scenario is not None else (baseline.scenario_name if baseline else "—")
     model_ref = model or (baseline.artifact_fingerprint.model_ref if baseline else "—")
-    policy_name = policy or (
-        getattr(scenario, "parity_profile", None).value
-        if scenario is not None and getattr(scenario, "parity_profile", None)
-        else "strict"
-    )
+    scenario_profile = scenario.parity_profile if scenario is not None else None
+    policy_name = policy or (scenario_profile.value if scenario_profile is not None else "strict")
 
     console.print(f"Scenario: {scenario_name}")
     console.print(f"Model:    {model_ref}")
