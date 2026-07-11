@@ -39,12 +39,13 @@ transformers = [
   "accelerate>=0.33",
   "safetensors>=0.4",
 ]
-vllm = ["vllm>=0.6"]
-llamacpp = ["llama-cpp-python>=0.3"]
+# These adapters are HTTP clients by default. Keep their server runtimes in a
+# separate, least-privilege environment instead of bringing their large
+# transitive dependency trees into an Eleanity installation.
+vllm = []
+llamacpp = []
 all = [
   "eleanity[transformers]",
-  "eleanity[vllm]",
-  "eleanity[llamacpp]",
 ]
 dev = [
   "pytest>=8",
