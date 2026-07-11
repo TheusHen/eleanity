@@ -5,7 +5,7 @@ Product surfaces:
   - Python API: :class:`eleanity.Eleanity` client (+ low-level helpers in :mod:`eleanity.api`)
 """
 
-from eleanity.api import (  # noqa: I001 — version first avoids circular imports
+from eleanity.api import (
     EXIT_CONFIG,
     EXIT_DIVERGENT,
     EXIT_OK,
