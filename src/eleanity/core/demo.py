@@ -55,8 +55,9 @@ def run_template_divergence_demo() -> dict[str, Any]:
     )
     baseline = observe(FakeAdapter(), scenario, "org/demo-model")
     candidate = observe(MissingAssistantTurnAdapter(), scenario, "org/demo-model")
-    diagnosis = diagnose([baseline, candidate])
-    template = PolicyEngine(scenario).compare_layers(baseline, candidate)["template"]
+    comparisons = PolicyEngine(scenario).compare_layers(baseline, candidate)
+    diagnosis = diagnose([baseline, candidate], comparisons)
+    template = comparisons["template"]
     cause = diagnosis.probable_causes[0] if diagnosis.probable_causes else None
     location = diagnosis.first_divergence_detail.location if diagnosis.first_divergence_detail else None
 
