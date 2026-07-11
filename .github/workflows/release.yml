@@ -1,4 +1,3 @@
-```yaml
 name: release
 
 # A release is created when main contains a version that has not been
@@ -215,4 +214,3 @@ jobs:
               --generate-notes \
               --verify-tag
           fi
-```
