@@ -1,0 +1,73 @@
+name: Parity bug
+description: Incorrect PASS/DIVERGENT/INCONCLUSIVE or wrong first divergence
+title: "[parity] "
+labels: ["bug", "parity"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report an incorrect parity verdict. **Redact prompts and secrets.**
+  - type: input
+    id: version
+    attributes:
+      label: Eleanity version / commit
+      placeholder: "0.4.0 or git SHA"
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model id
+      placeholder: HuggingFaceTB/SmolLM2-135M-Instruct
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Model revision / commit
+      placeholder: main
+  - type: input
+    id: backends
+    attributes:
+      label: Backends compared
+      placeholder: transformers,vllm
+    validations:
+      required: true
+  - type: input
+    id: policy
+    attributes:
+      label: Policy
+      placeholder: strict | quantized | functional | api_conformance
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      description: Full reproduction command
+      render: bash
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual (status, first_divergence, coverage, confidence)
+    validations:
+      required: true
+  - type: textarea
+    id: flags
+    attributes:
+      label: Runtime flags / quant / URLs
+      description: dtype, quant, ELEANITY_*_URL, seed, max_tokens, etc.
+  - type: textarea
+    id: trace
+    attributes:
+      label: Redacted diagnosis / layer table
+      description: Paste quiet line + verified/not verified. Do not paste secrets.
+      render: text

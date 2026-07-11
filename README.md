@@ -1,179 +1,123 @@
 # Eleanity
 
-### Same model. Same input. Find the **first** causal divergence.
+**Same model. Same input. Find the first causal divergence.**
 
 [![CI](https://github.com/TheusHen/eleanity/actions/workflows/ci.yml/badge.svg)](https://github.com/TheusHen/eleanity/actions/workflows/ci.yml)
 [![Local AI parity](https://github.com/TheusHen/eleanity/actions/workflows/parity-local-ai.yml/badge.svg)](https://github.com/TheusHen/eleanity/actions/workflows/parity-local-ai.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![CLI-only](https://img.shields.io/badge/product-CLI%20only-black.svg)](#why-cli-only)
+[![Status](https://img.shields.io/badge/status-alpha-orange.svg)](ROADMAP.md)
 
-**Eleanity is a local-first CLI that tells you *where* two LLM runtimes of the same model started lying to each other** — chat template, tokenizer, token IDs, generation, API shape — with **coverage**, **confidence**, and a **reproducible command**.
+CLI-first tool for **LLM runtime parity**. It compares inference stacks on the same scenario and reports:
 
-It does **not** tell you if the model is “smart”.  
-It tells you if **vLLM / Transformers / llama.cpp / LM Studio / OpenAI-compat** still produce the **same causal path** for the same scenario.
+- **status** (`PASS`, `PASS_WITH_TOLERANCE`, `PASS_WITH_LIMITED_COVERAGE`, `INCONCLUSIVE`, `DIVERGENT`, `ERROR`)
+- **first divergent layer** (when present)
+- **coverage** of required layers and **diagnosis confidence**
+- **functional impact** (separate from internal parity)
+- a **reproduction command**
 
-```text
-$ eleanity compare --model HuggingFaceTB/SmolLM2-135M-Instruct \
-    --backends transformers,transformers --format quiet --no-gates
+It does **not** score model quality (no MMLU). It checks whether two runtimes still share the same causal path: artifact → template → special tokens → token IDs → generation / API.
 
-status=PASS impact=NONE coverage=100.0 confidence=0.85
-first_divergence=none gates=True
-run_id=0aba046a-5846-45b2-94d9-4584bb4fe98a
-```
+**Product surface is CLI only** (`text` / `json` / `quiet` / `sarif`).
 
-> **Real run on this machine** (CPU, cached HF weights):  
-> pull tokenizer ~11s · full self-parity compare ~14s wall / **~10.3s** engine · template+tokens **PASS** · generation **PASS** · coverage **100%**.
-
-If that line looks useful for your monorepo, CI, or runtime migration — **star the repo** so more platform teams find it.
+> **Hosting note:** the repository currently lives at  
+> [`TheusHen/eleanity`](https://github.com/TheusHen/eleanity) (alpha).  
+> Transfer to `eleanity/eleanity` is planned when the org is available ([ROADMAP.md](ROADMAP.md)).
 
 ---
 
-## Why this exists
+## Install (clean machine)
 
-Shipping an LLM is no longer “one Python process”.  
-It’s **Transformers → vLLM**, **full precision → Q8**, **HF id → LM Studio id**, **template flag off by one newline**.
-
-Most teams discover that with:
-
-| Approach | What you get | What’s missing |
-| --- | --- | --- |
-| Manual `print(output)` | vibes | no layer, no location, no CI contract |
-| Golden string tests | brittle diffs | not causal (why / where) |
-| lm-eval / MMLU | quality scores | **not** runtime parity |
-| Generic “LLM proxy” dashboards | latency/cost | not first divergence |
-| Ad-hoc notebooks | one-off truth | not reproducible in CI |
-| **Eleanity** | **first divergent layer + coverage + exit codes** | focused on parity only |
-
-Eleanity is the **diff tool for inference stacks**, not a benchmark suite.
-
----
-
-## 60-second demo (no GPU, no model download)
+### From Git (available now)
 
 ```bash
-uv sync --group dev
-uv run eleanity doctor --format json
-uv run eleanity compare --model demo --backends fake,fake --format quiet --no-parallel --no-gates
+# one-shot CLI without a permanent install
+uvx --from git+https://github.com/TheusHen/eleanity.git eleanity --help
+
+# or install into an environment
+pip install "git+https://github.com/TheusHen/eleanity.git"
+# optional HF backend
+pip install "git+https://github.com/TheusHen/eleanity.git[transformers]"
 ```
 
-### Exact output (live run)
+```bash
+uv add git+https://github.com/TheusHen/eleanity.git
+# or with transformers extra:
+uv add "eleanity[transformers] @ git+https://github.com/TheusHen/eleanity.git"
+```
+
+### From a local checkout
+
+```bash
+git clone https://github.com/TheusHen/eleanity.git
+cd eleanity
+uv sync --group dev
+uv run eleanity --help
+```
+
+### PyPI
+
+PyPI publish is wired (`publish.yml` on `v*` tags) but **not yet released**.  
+Until `pip install eleanity` resolves on PyPI, use **git install** above. See [ROADMAP.md](ROADMAP.md).
+
+Requires **Python 3.11+**.
+
+---
+
+## 60-second offline check
+
+```bash
+uv run eleanity compare --model demo --backends fake,fake \
+  --format quiet --no-parallel --no-gates
+```
+
+Exact output from a live run:
 
 ```text
-$ uv run eleanity compare --model demo --backends fake,fake --format quiet --no-parallel --no-gates
-
 status=PASS impact=NONE coverage=100.0 confidence=0.85 first_divergence=none gates=True run_id=16c3f05b-70f9-4c6a-9170-3e5942f91bd6
 ```
 
-JSON summary from the same path:
-
-```json
-{
-  "status": "PASS",
-  "impact": "NONE",
-  "coverage_percent": 100.0,
-  "confidence": 0.85,
-  "first_divergence": null,
-  "gates_passed": true,
-  "verified_layers": [
-    "artifact",
-    "template",
-    "tokens",
-    "generation",
-    "special_tokens"
-  ]
-}
-```
-
-**What this proves in seconds:**
-
-- install is one command  
-- machine-readable one-liner for CI  
-- honest **coverage** (not a silent skip)  
-- **confidence** on the diagnosis  
-- dual axis: **parity status** + **functional impact**
-
-Self-consistency probe:
-
-```text
-$ uv run eleanity stabilize --backend fake --model demo --repetitions 3 --format quiet
-
-backend=fake rate=1.0 self_consistent=True
-# ~4.4s for 3 self-pairs on this machine
-```
-
 ---
 
-## Real model demo (tiny HF model, CPU)
+## Real model self-parity (PASS)
 
-This is the “show me it works” path. Model: **`HuggingFaceTB/SmolLM2-135M-Instruct`** (~135M params).
+Model: `HuggingFaceTB/SmolLM2-135M-Instruct` (CPU).
 
-### Stage 1 — environment
+### Commands
 
 ```bash
 uv sync --group dev --extra transformers
-uv run eleanity doctor --format json
+
+uv run eleanity pull HuggingFaceTB/SmolLM2-135M-Instruct --tokenizer-only
+
+uv run eleanity compare \
+  --model HuggingFaceTB/SmolLM2-135M-Instruct \
+  --backends transformers,transformers \
+  --format quiet --no-parallel --no-gates \
+  --observe artifact,template,special_tokens,tokens,generation
 ```
 
-### Stage 2 — pull (tokenizer path)
-
-```bash
-$ uv run eleanity pull HuggingFaceTB/SmolLM2-135M-Instruct --tokenizer-only
-```
-
-Exact response (cached run):
-
-```json
-{
-  "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
-  "revision": "main",
-  "tokenizer_only": true,
-  "tokenizer_loadable": true,
-  "trust_remote_code": false
-}
-```
-
-```text
-# wall time on this machine (already cached): ~11.2s
-```
-
-### Stage 3 — compare Transformers × Transformers
-
-```bash
-$ uv run eleanity compare \
-    --model HuggingFaceTB/SmolLM2-135M-Instruct \
-    --backends transformers,transformers \
-    --format quiet \
-    --no-parallel \
-    --no-gates \
-    --observe artifact,template,special_tokens,tokens,generation
-```
-
-**Exact quiet line (real run):**
+### Exact quiet output (live run)
 
 ```text
 status=PASS impact=NONE coverage=100.0 confidence=0.85 first_divergence=none gates=True run_id=0aba046a-5846-45b2-94d9-4584bb4fe98a
 ```
 
-```text
-# engine total_ms ≈ 10275.5
-# wall clock ≈ 13.9s (includes process startup + weight load)
-# second observation is warm: ~1.0s vs ~9.3s first pass
-```
-
-### Stage 4 — human report
+| Metric | Value |
+| --- | --- |
+| Engine total | ~10276 ms |
+| First observation | ~9259 ms |
+| Second (warm) | ~1017 ms |
+| Token match | 31 / 31 |
+| Required coverage | 100% (min 75%) |
 
 ```bash
-$ uv run eleanity report 0aba046a-5846-45b2-94d9-4584bb4fe98a --format text
+uv run eleanity report 0aba046a-5846-45b2-94d9-4584bb4fe98a --format text
 ```
 
-**Exact highlights from that report:**
+Layer table excerpt:
 
 ```text
-run_id:     0aba046a-5846-45b2-94d9-4584bb4fe98a
-policy:     strict
-baseline:   transformers
-
 Layer            Baseline obs   Candidate obs   Compare
 artifact         OBSERVED       OBSERVED        PASS
 special_tokens   OBSERVED       OBSERVED        PASS
@@ -181,268 +125,161 @@ template         OBSERVED       OBSERVED        PASS
 tokens           OBSERVED       OBSERVED        PASS
 generation       OBSERVED       OBSERVED        PASS
 
-Coverage
-  required:  100.0% (min 75.0%)
-  requested: 100.0%
-
-Verified
-  artifact, template, tokens, generation, special_tokens
-
-Not verified
-  —
-
-Diagnosis · PASS · confidence=85%
-  No divergence found on mutually comparable layers.
-
-Template diff
-  result: PASS
-
-Token diff
-  result: PASS
-  count: 31 (match)
-
-Gates
-  [OK] min-coverage: required-layer coverage 100.0% (min 75%)
-  [OK] default-diagnosis: ...
-
-Timings
-  transformers:    9258.8 ms (90.1%)
-  transformers#2:  1016.8 ms ( 9.9%)
-  total:          10275.53 ms
-  delta: transformers#2 is -89.0% vs transformers
-
-Reproduce
-  eleanity compare --model HuggingFaceTB/SmolLM2-135M-Instruct \
-    --backends transformers,transformers --baseline transformers \
-    --policy strict \
-    --observe artifact,template,special_tokens,tokens,generation \
-    --no-gates --name compare --format text
+Template diff: PASS
+Token diff:    PASS (count: 31)
 ```
 
-### Stage 5 — CI one-liner
-
-```bash
-eleanity compare --model HuggingFaceTB/SmolLM2-135M-Instruct \
-  --backends transformers,transformers --format quiet --no-gates
-# exit 0 on PASS / PASS_WITH_TOLERANCE / PASS_WITH_LIMITED_COVERAGE (unless gates fail)
-# exit 1 on DIVERGENT
-# exit 2 on config / missing deps
-```
+This validates the **engine and Transformers path**. It is not yet a cross-runtime claim.
 
 ---
 
-## What makes it different (and star-worthy)
+## First-divergence demo (DIVERGENT at template)
 
-### 1. Causal, not cosmetic
-Other tools stop at “outputs differ”.  
-Eleanity walks layers in order:
-
-`artifact → template → special_tokens → tokens → logits → generation → structured → api`
-
-…and reports **first divergence** with location (char/byte/token index when available).
-
-### 2. Honest about missing data
-Missing observations never become silent PASS.
-
-| Observation state | Meaning |
-| --- | --- |
-| `OBSERVED` | both sides measured |
-| `NOT_EXPOSED` / `NOT_SUPPORTED` | backend can’t show the layer |
-| `NOT_REQUESTED` | scenario didn’t ask |
-
-| Comparison status | Meaning |
-| --- | --- |
-| `PASS` | required layers match |
-| `PASS_WITH_TOLERANCE` | within declared numeric/prefix policy |
-| `PASS_WITH_LIMITED_COVERAGE` | green-ish but incomplete evidence |
-| `INCONCLUSIVE` | not enough mutual observation |
-| `DIVERGENT` | hard mismatch |
-| `ERROR` | failed to run |
-
-Every report shows **Verified** / **Not verified**, **coverage %**, and **confidence**.
-
-### 3. Built for operators
-- Exit codes for GitHub Actions / GitLab  
-- `quiet` for bots, `text` for humans, `json` for pipelines, `sarif` for code scanning  
-- `replay <run_id>`, `stabilize`, `migrate`, `promote`, `vendor-check`, golden regression  
-- Full **reproduction command** stored on every run  
-
-### 4. Fast enough for daily loops
-| Workload | Observed on this machine |
-| --- | --- |
-| offline fake self-parity | ~2–3s |
-| stabilize ×3 (fake) | ~4.4s |
-| SmolLM2-135M self-parity (CPU, cached) | ~10–14s |
-| warm second observation | ~1s |
-
-That’s “run it on every PR with a tiny model” territory — not “wait for overnight eval”.
-
-### 5. Policies you can argue about in a design review
+Cross-runtime HTTP pairs depend on your local servers. Independently of that, Eleanity localizes a classic failure mode: **one side omits the assistant generation prompt**.
 
 ```bash
-eleanity policy-spec --policy quantized --format quiet
-# artifact=exact chat_template=exact ... prefill_logits=numerical
-# generated_token_ids=prefix finish_reason=exact
+uv run python scripts/examples/demo_template_divergence.py
 ```
 
-`strict` for tokenizer CI.  
-`quantized` for Q8 vs bf16.  
-`functional` / `api_conformance` for tools & HTTP shape.
+Exact output (live run):
+
+```text
+=== Eleanity first-divergence demo ===
+model:     org/demo-model
+baseline:  fake (add_generation_prompt=true)
+candidate: candidate-no-agp (omits assistant turn)
+policy:    strict
+
+status:            DIVERGENT
+first_divergence:  template
+character:         11
+byte:              11
+baseline_snippet:  "
+assistant:"
+candidate_snippet: ""
+
+baseline template:
+'user: Hello\nassistant:'
+candidate template:
+'user: Hello'
+
+template comparison: DIVERGENT
+first_character:     11
+first_byte:          11
+
+probable_cause: [CHAT_TEMPLATE_DIFFERENT] conf=0.92
+  Chat template hash differs between backends.
+
+summary: First divergence is in the chat template at character 11. After that,
+100.0% of tokens differ from index 11. Likely cause: Chat template hash differs
+between backends.
+```
+
+That is the core product claim: **layer + character index + snippets + cause code**, not only “outputs differ”.
+
+### Cross-runtime (Transformers × OpenAI-compatible server)
+
+When a server is available (vLLM serve, LM Studio, etc.):
+
+```bash
+export ELEANITY_VLLM_URL=http://127.0.0.1:1234   # no trailing /v1
+uv run eleanity doctor --check-backends --backends vllm --format json
+
+# Same logical model, two stack IDs (example names)
+# transformers: HuggingFaceTB/SmolLM2-135M-Instruct
+# server:       huggingfacetb.smollm2-135m-instruct
+uv run eleanity compare --config eleanity.yaml \
+  --backends transformers,vllm \
+  --backend-url vllm=http://127.0.0.1:1234 \
+  --policy quantized \
+  --format text --no-gates
+```
+
+Expect honest partial observability on HTTP (template/tokens often `NOT_EXPOSED`).  
+A green generation with missing template layers should surface as **`PASS_WITH_LIMITED_COVERAGE`**, not a silent full PASS. See [docs/adapter-capabilities.md](docs/adapter-capabilities.md).
 
 ---
 
-## Install
+## Compared to common alternatives
 
-```bash
-# core CLI
-uv sync --group dev
-
-# optional local HF backend
-uv sync --extra transformers
-```
-
-Requires **Python 3.11+**.
+| Approach | Result type | Causal first layer | CI exit contract | Missing-data honesty |
+| --- | --- | --- | --- | --- |
+| Manual print / eyeball | vibes | no | no | no |
+| String golden tests | brittle text diff | rare | sometimes | often silent |
+| lm-eval / quality benches | capability scores | no | yes | n/a |
+| API latency dashboards | ops metrics | no | maybe | n/a |
+| **Eleanity** | parity + location | **yes** | **0/1/2** | **yes (coverage)** |
 
 ---
 
-## Everyday commands
+## Adapter capability matrix (summary)
+
+Full table: [docs/adapter-capabilities.md](docs/adapter-capabilities.md).
+
+| Adapter | template | tokens | logits | generation | streaming | API |
+| --- | --- | --- | --- | --- | --- | --- |
+| fake | yes | yes | no | yes | yes | partial |
+| transformers | yes | yes | partial | yes | no | no |
+| vllm HTTP | partial | partial | no | yes | partial | yes |
+| llamacpp HTTP | partial | partial | no | yes | partial | yes |
+| ollama | no | no | no | yes | partial | yes |
+| sglang / tgi / openai | partial/no | partial/no | no | yes | partial | yes |
+
+---
+
+## Everyday CLI
 
 ```bash
-# environment check
-eleanity doctor --check-backends --format json
-
-# main path
+eleanity doctor --check-backends
 eleanity compare --backends transformers,vllm --format text
-
-# suites / CI
 eleanity test fixtures/public/tokenizer-edge.yaml --backends fake,fake --format quiet
-eleanity ci --baseline M1 --candidate M2 --backend transformers --format quiet
-
-# product flows
-eleanity migrate --from transformers --to vllm --model org/model
-eleanity promote --baseline full --candidate quant --backend transformers --policy quantized
-eleanity vendor-check --endpoint http://127.0.0.1:8000 --model vendor-id
-
-# history
-eleanity runs ls --format quiet
 eleanity report <run-id> --format text
 eleanity replay <run-id>
+eleanity stabilize --backend fake --repetitions 3 --format quiet
+eleanity policy-spec --policy quantized
 ```
+
+Exit codes: `0` pass family · `1` divergent / gate fail · `2` config / dependency error.
 
 Full reference: [docs/cli.md](docs/cli.md)
 
 ---
 
-## Why CLI only?
+## CI
 
-Eleanity is intentionally **not** a shareable HTML dashboard product.
-
-Supported operator I/O:
-
-| Format | Audience |
+| Workflow | Role |
 | --- | --- |
-| `text` | humans in the terminal |
-| `json` | automation |
-| `quiet` | one-line CI |
-| `sarif` | security / code scanning |
+| `ci.yml` | **Required quality:** ruff + unit/contract/integration + CLI smoke |
+| `ci.yml` typecheck job | **Informational mypy** (does not fail the workflow in 0.4.x) |
+| `parity-local-ai.yml` | Downloads SmolLM2-135M and runs real Transformers self-parity |
+| `parity-public-fixtures.yml` | Public fixture suites |
+| `publish.yml` | Build/publish on `v*` tags when PyPI credentials exist |
+| `eleanity.yml` | Reusable monorepo gate |
 
-That keeps the tool **local-first**, **scriptable**, and **honest** in logs — the properties that win stars from engineers, not screenshots from demos that hide missing layers.
-
----
-
-## Architecture
-
-```mermaid
-flowchart TD
-    A[Scenario YAML]
-    B[Adapters<br/>Transformers / vLLM / llama.cpp / …]
-    C[ObservationTrace + Origin]
-    D[Policy Comparators + Gates + Coverage]
-    E[Diagnosis<br/>Status, First Divergence, Confidence, Impact]
-    F[".eleanity/runs/&lt;id&gt;/<br/>{result.json, trace.v1.json}"]
-
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-```
-
-
-Deep dives:
-
-- [docs/parity-specification.md](docs/parity-specification.md)  
-- [docs/trace-specification.md](docs/trace-specification.md)  
-- [docs/execution-capsule.md](docs/execution-capsule.md)  
-- [docs/evaluation-assessment.md](docs/evaluation-assessment.md)  
-
----
-
-## CI that actually runs models
-
-GitHub Actions ship with the repo:
-
-| Workflow | What it does |
-| --- | --- |
-| `ci.yml` | lint · unit · contract · CLI smoke |
-| `parity-local-ai.yml` | **downloads SmolLM2-135M** · real transformers self-parity · uploads `values.json` |
-| `parity-public-fixtures.yml` | public scenario suites |
-| `eleanity.yml` | reusable monorepo gate |
-
-Local AI helper:
+Local:
 
 ```bash
-# Linux/macOS
-ELEANITY_CI_MODEL=HuggingFaceTB/SmolLM2-135M-Instruct \
-  bash scripts/ci/run_local_ai_parity.sh
-
-# Windows
-.\scripts\ci\run_local_ai_parity.ps1
-```
-
----
-
-## Adapters
-
-`transformers` · `vllm` (HTTP + optional embedded) · `llamacpp` · `ollama` · `sglang` · `tgi` · `openai` · `fake`
-
-HTTP backends stay honest when they cannot expose templates/logits — those layers show as **Not verified**, not fake PASS.
-
----
-
-## Contributing
-
-```bash
-uv sync --group dev
 uv run ruff check src tests
 uv run ruff format --check src tests
 uv run pytest -q
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and PRs welcome — especially new adapters, fixtures, and diagnosis rules.
-
 ---
 
-## Star this if you care about runtime truth
+## Project docs
 
-If you:
-
-- migrate **Transformers → vLLM / SGLang / llama.cpp**  
-- ship **quantized** models and need a non-vibes gate  
-- own **platform CI** for LLM services  
-- are tired of “it works on my notebook”
-
-…**Eleanity is for you.**
-
-**Star the repo**, run the 60-second demo, drop a issue with your stack (model + backends). The more real stacks we support, the more this becomes the default parity tool for the ecosystem.
-
-```bash
-uv run eleanity compare --model demo --backends fake,fake --format quiet
-# status=PASS coverage=100.0 confidence=0.85
-```
+| Doc | Purpose |
+| --- | --- |
+| [docs/cli.md](docs/cli.md) | CLI reference |
+| [docs/parity-specification.md](docs/parity-specification.md) | Status + comparator tables |
+| [docs/adapter-capabilities.md](docs/adapter-capabilities.md) | Honesty matrix |
+| [docs/trace-specification.md](docs/trace-specification.md) | Trace Spec v1 |
+| [ROADMAP.md](ROADMAP.md) | Alpha boundaries |
+| [SUPPORT.md](SUPPORT.md) | Where to get help |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
 
 ---
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+Apache License 2.0 — full text in [LICENSE](LICENSE).

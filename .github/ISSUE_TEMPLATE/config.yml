@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/TheusHen/eleanity/security/advisories/new
+    about: Private vulnerability reporting (do not open a public issue)
+  - name: Support
+    url: https://github.com/TheusHen/eleanity/blob/main/SUPPORT.md
+    about: Where to ask for help

@@ -1,0 +1,43 @@
+name: Feature / adapter
+description: Request a new adapter, layer, or product capability
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - New adapter
+        - Deeper observation on existing adapter
+        - Policy / comparator
+        - CLI UX
+        - CI / packaging
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What workflow is hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations:
+      required: true
+  - type: textarea
+    id: observability
+    attributes:
+      label: Observability expectations
+      description: Which layers should be OBSERVED vs NOT_EXPOSED / NOT_SUPPORTED?
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I can help implement this
+        - label: I can provide a reproduction environment

@@ -69,9 +69,11 @@ dev = [
 eleanity = "eleanity.cli.app:app"
 
 [project.urls]
-Homepage = "https://github.com/eleanity/eleanity"
-Documentation = "https://github.com/eleanity/eleanity/tree/main/docs"
-Issues = "https://github.com/eleanity/eleanity/issues"
+Homepage = "https://github.com/TheusHen/eleanity"
+Documentation = "https://github.com/TheusHen/eleanity/tree/main/docs"
+Issues = "https://github.com/TheusHen/eleanity/issues"
+Repository = "https://github.com/TheusHen/eleanity"
+# Planned transfer: https://github.com/eleanity/eleanity (when org exists)
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/eleanity"]
