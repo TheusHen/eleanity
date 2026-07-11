@@ -65,22 +65,25 @@ pip install eleanity
 pip install "eleanity==0.4.0"
 ```
 
-Publish is automatic **only from a git tag** `vX.Y.Z` whose version **exactly matches** `pyproject.toml` (and package `__version__`).  
-The workflow builds that tag commit, checks wheel/sdist metadata, writes **SHA256SUMS**, uploads to PyPI, and attaches artifacts to the GitHub Release.
+Publish via GitHub Actions (`publish.yml`):
+
+- **Push tag** `vX.Y.Z` → version must match `pyproject.toml`
+- **Actions → publish → Run workflow** on `main` (or any branch) → uses version from that tree, builds, uploads to PyPI, then creates/moves tag `v{version}` to that commit
 
 ```bash
-# after setting the secret:
+# secret once:
 gh secret set PYPI_API_TOKEN -R TheusHen/eleanity
-# tag must match version in pyproject.toml
-git tag v0.4.0   # only if HEAD is the release commit and version is 0.4.0
-git push origin v0.4.0
-# or re-run: gh workflow run publish.yml --ref v0.4.0
+
+# publish current main as the version in pyproject.toml:
+gh workflow run publish.yml -R TheusHen/eleanity --ref main
+
+# or push a tag that already matches pyproject version:
+git tag v0.4.0 && git push origin v0.4.0
 ```
 
-Repo secret required: **`PYPI_API_TOKEN`** (`pypi-…` from [pypi.org/manage/account/token](https://pypi.org/manage/account/token/)).  
-`workflow_dispatch` on a branch tip is **rejected** (release integrity).
+The job verifies wheel/sdist metadata, writes **SHA256SUMS**, and attaches them to the GitHub Release.
 
-Until that secret is set and a release is published, use **git install** above.
+Until a release is published, use **git install** above.
 
 Requires **Python 3.11+**.
 
