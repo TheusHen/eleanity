@@ -6,7 +6,7 @@ Product surfaces:
 """
 
 from eleanity.version import __version__
-from eleanity.api import (
+from eleanity.api import (  # noqa: I001 — version first avoids circular imports
     EXIT_CONFIG,
     EXIT_DIVERGENT,
     EXIT_OK,
