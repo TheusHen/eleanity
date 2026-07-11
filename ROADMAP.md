@@ -25,13 +25,13 @@ Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
 - CI: required checks on `main` (ruff, unit, contract, CLI smoke)
 - GitHub: public repo, discussions, branch protection, secret scanning, private vulnerability reporting
 - Install path: `pip install git+https://github.com/TheusHen/eleanity.git` (and `uvx --from git+…`)
-- Wheel/sdist build for 0.4.0; `publish.yml` auto-publishes on `v*` tags via secret `PYPI_API_TOKEN`
+- Wheel/sdist build; `publish.yml` publishes **only from tag refs** where tag version == `pyproject.toml`, with SHA256SUMS + GitHub Release assets (`PYPI_API_TOKEN`)
 
 ## Explicitly incomplete
 
 | Area | Status |
 | --- | --- |
-| PyPI published name `eleanity` | Workflow ready — add secret `PYPI_API_TOKEN`, then re-run **publish** on `v0.4.0` (or bump + tag) |
+| PyPI published name `eleanity` | Workflow ready with tag↔version integrity — add `PYPI_API_TOKEN`, ensure tag commit matches version, run publish |
 | Org home `eleanity/eleanity` | Deferred; stay on `TheusHen/eleanity` |
 | Deep logits on all HTTP backends | Partial / often NOT_EXPOSED |
 | Fine-grained decode step IDs | Spec ready; adapters lag |

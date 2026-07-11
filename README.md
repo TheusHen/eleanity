@@ -36,8 +36,8 @@ uvx --from git+https://github.com/TheusHen/eleanity.git eleanity --help
 
 # or install into an environment
 pip install "git+https://github.com/TheusHen/eleanity.git"
-# optional HF backend
-pip install "git+https://github.com/TheusHen/eleanity.git[transformers]"
+# optional HF backend (PEP 508 direct reference + extras)
+pip install "eleanity[transformers] @ git+https://github.com/TheusHen/eleanity.git"
 ```
 
 ```bash
@@ -65,8 +65,20 @@ pip install eleanity
 pip install "eleanity==0.4.0"
 ```
 
-Publish is automatic: push a `v*` tag (or run the **publish** workflow manually).  
-Repo secret required: **`PYPI_API_TOKEN`** (`pypi-…` from [pypi.org/manage/account/token](https://pypi.org/manage/account/token/)).
+Publish is automatic **only from a git tag** `vX.Y.Z` whose version **exactly matches** `pyproject.toml` (and package `__version__`).  
+The workflow builds that tag commit, checks wheel/sdist metadata, writes **SHA256SUMS**, uploads to PyPI, and attaches artifacts to the GitHub Release.
+
+```bash
+# after setting the secret:
+gh secret set PYPI_API_TOKEN -R TheusHen/eleanity
+# tag must match version in pyproject.toml
+git tag v0.4.0   # only if HEAD is the release commit and version is 0.4.0
+git push origin v0.4.0
+# or re-run: gh workflow run publish.yml --ref v0.4.0
+```
+
+Repo secret required: **`PYPI_API_TOKEN`** (`pypi-…` from [pypi.org/manage/account/token](https://pypi.org/manage/account/token/)).  
+`workflow_dispatch` on a branch tip is **rejected** (release integrity).
 
 Until that secret is set and a release is published, use **git install** above.
 
@@ -143,24 +155,33 @@ This validates the **engine + Transformers path**.
 
 ---
 
-## Cross-runtime DIVERGENT (Transformers × OpenAI-compat HTTP)
+## Cross-runtime DIVERGENT (Transformers × real HF OpenAI-compat HTTP)
 
-Real pair: **Transformers (local HF weights)** vs **vLLM adapter** pointed at a local OpenAI-compatible server.
+**Both sides run real Hugging Face weights** (SmolLM2-135M-Instruct):
 
-The repo ships a mock server that answers `/v1/chat/completions` but **does not** expose template/tokenize — same honesty profile as many LM Studio / gateway setups.
+| Side | Runtime path |
+| --- | --- |
+| Baseline | `transformers` adapter (in-process) |
+| Candidate | `vllm` adapter → local OpenAI-compat server that **loads the same HF model** via Transformers |
+
+The HTTP server does **not** expose template/tokenize endpoints (same honesty profile as many LM Studio / gateway setups). By default it applies the chat template **without** the assistant generation prompt — a common production bug — so generation diverges for a causal reason, not a hard-coded string.
 
 ### Commands (exact)
 
 ```bash
-# one process starts mock server, runs doctor + compare, stops server
+uv sync --group dev --extra transformers
+
+# starts real HF server, runs doctor + compare, stops server
 uv run python scripts/examples/run_cross_runtime_demo.py
 ```
 
 Under the hood:
 
 ```bash
-# terminal A (or the helper starts this for you)
-uv run python scripts/examples/mock_openai_diverge.py --port 8765
+# terminal A
+uv run python scripts/examples/hf_openai_server.py \
+  --port 8765 --preload --omit-generation-prompt \
+  --model HuggingFaceTB/SmolLM2-135M-Instruct
 
 # terminal B
 export ELEANITY_VLLM_URL=http://127.0.0.1:8765
@@ -174,24 +195,28 @@ uv run eleanity compare \
   --observe artifact,template,tokens,generation,api
 ```
 
+Parity attempt (server uses full AGP): `ELEANITY_DEMO_MATCH=1 uv run python scripts/examples/run_cross_runtime_demo.py`
+
+Point the same commands at LM Studio / vLLM serve by changing `--backend-url`. Offline fixed-string stub (CI without GPU weights): `scripts/examples/mock_openai_diverge.py`.
+
 ### Exact quiet output (live run)
 
 ```text
-status=DIVERGENT impact=HIGH coverage=50.0 confidence=0.762 first_divergence=generation gates=False run_id=ca69f154-5c0e-4a81-8401-f81fed942ab0
+status=DIVERGENT impact=HIGH coverage=50.0 confidence=0.762 first_divergence=generation gates=False run_id=90028893-8848-463f-9331-daf5268f60b5
 ```
 
 | Field | Value |
 | --- | --- |
-| Baseline | transformers · `HuggingFaceTB/SmolLM2-135M-Instruct` (HF bf16 safetensors) |
-| Candidate | vllm adapter → `http://127.0.0.1:8765` (OpenAI-compat mock) |
+| Baseline | transformers · `HuggingFaceTB/SmolLM2-135M-Instruct` (HF weights, in-process) |
+| Candidate | vllm adapter → `hf_openai_server.py` (same HF weights over HTTP, `--omit-generation-prompt`) |
 | Policy | `quantized` |
 | Status | **DIVERGENT** |
 | First divergence | **generation** |
-| Coverage | **50%** required layers (template/tokens not mutually observed) |
+| Coverage | **50%** required layers (template/tokens not mutually observed on HTTP) |
 | Verified | artifact, generation |
 | Not verified | template (`NOT_SUPPORTED` on HTTP), tokens (`NOT_EXPOSED` on HTTP) |
-| Generation texts | transformers: `Hello! How can I help you today?` · HTTP: `hi from divergent mock (...)` |
-| Engine total | ~9785 ms |
+| Generation texts | transformers: `Hello! How can I help you today?` · HTTP: `assistant\nHello! How can I help you today?` |
+| Engine total | ~8287 ms |
 
 Reproduction command stored on the run:
 
@@ -202,7 +227,7 @@ eleanity compare --model HuggingFaceTB/SmolLM2-135M-Instruct --backends transfor
   --backend-url vllm=http://127.0.0.1:8765 --format text
 ```
 
-This is the cross-stack claim: **different runtimes, localized first divergence, honest missing layers**.
+This is the cross-stack claim: **two real runtimes, same model weights, localized first divergence, honest missing layers**.
 
 ---
 

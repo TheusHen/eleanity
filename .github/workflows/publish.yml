@@ -1,10 +1,14 @@
 name: publish
 
-# Automatic PyPI publish when a v* tag is pushed.
-# Manual: Actions → publish → Run workflow (use after adding the secret).
+# Publish ONLY from annotated/lightweight git tags named vX.Y.Z where X.Y.Z
+# exactly matches [project].version in pyproject.toml (release integrity).
 #
-# Required secret (repo → Settings → Secrets and variables → Actions):
-#   PYPI_API_TOKEN  =  pypi-...  (PyPI account → API tokens, scope: entire account or project:eleanity)
+# Triggers:
+#   - push of tags matching v*
+#   - workflow_dispatch (must be run against a tag ref, e.g. --ref v0.4.1)
+#
+# Required secret:
+#   PYPI_API_TOKEN = pypi-...  (Settings → Secrets → Actions)
 
 on:
   push:
@@ -13,13 +17,86 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write  # attach dist + checksums to the GitHub Release for the tag
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Require tag ref
+        run: |
+          ref="${GITHUB_REF}"
+          echo "GITHUB_REF=$ref"
+          if [[ "$ref" != refs/tags/v* ]]; then
+            echo "::error::Publish is only allowed from a tag ref (got: $ref)."
+            echo "Push a tag, or: gh workflow run publish.yml --ref vX.Y.Z"
+            exit 1
+          fi
+          TAG="${ref#refs/tags/}"
+          VERSION="${TAG#v}"
+          if [[ "$TAG" != v* ]] || [[ -z "$VERSION" ]] || [[ "$VERSION" == "$TAG" && "$TAG" != v* ]]; then
+            echo "::error::Tag must look like vX.Y.Z (got: $TAG)"
+            exit 1
+          fi
+          # Semver-ish: digits and dots, optional pre-release suffix after -
+          if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+)*([a-zA-Z0-9._-]+)?$ ]]; then
+            echo "::error::Invalid version extracted from tag: $VERSION"
+            exit 1
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v4
+        with:
+          # Pin the build to the exact tag commit (not a floating branch tip).
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Verify tag points at this commit
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TAG_SHA="$(git rev-list -n 1 "$TAG")"
+          echo "HEAD=$HEAD_SHA"
+          echo "TAG_SHA=$TAG_SHA"
+          if [[ "$HEAD_SHA" != "$TAG_SHA" ]]; then
+            echo "::error::Checked-out commit does not match tag $TAG"
+            exit 1
+          fi
+
+      - name: Verify pyproject version matches tag
+        run: |
+          set -euo pipefail
+          PY_VERSION="$(python - <<'PY'
+          import re, pathlib
+          text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
+          m = re.search(r'(?m)^version\s*=\s*"([^"]+)"', text)
+          if not m:
+              raise SystemExit("version not found in pyproject.toml")
+          print(m.group(1))
+          PY
+          )"
+          echo "pyproject version=$PY_VERSION"
+          echo "tag version=$VERSION"
+          if [[ "$PY_VERSION" != "$VERSION" ]]; then
+            echo "::error::Release integrity failure: tag v$VERSION != pyproject version $PY_VERSION"
+            echo "Bump version in pyproject.toml and src/eleanity/__init__.py, commit, then retag."
+            exit 1
+          fi
+          # Keep package __version__ in sync when present
+          if [[ -f src/eleanity/__init__.py ]]; then
+            INIT_VERSION="$(python - <<'PY'
+          import re, pathlib
+          text = pathlib.Path("src/eleanity/__init__.py").read_text(encoding="utf-8")
+          m = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', text)
+          print(m.group(1) if m else "")
+          PY
+          )"
+            if [[ -n "$INIT_VERSION" && "$INIT_VERSION" != "$VERSION" ]]; then
+              echo "::error::src/eleanity/__init__.py __version__=$INIT_VERSION != $VERSION"
+              exit 1
+            fi
+          fi
 
       - uses: astral-sh/setup-uv@v4
         with:
@@ -31,33 +108,84 @@ jobs:
       - name: Build sdist + wheel
         run: uv build
 
-      - name: Verify dist
+      - name: Verify dist metadata version
         run: |
-          ls -la dist/
-          python - <<'PY'
+          set -euo pipefail
+          python - <<PY
+          import re, zipfile
           from pathlib import Path
+          expected = "${VERSION}"
           wheels = list(Path("dist").glob("*.whl"))
           sdists = list(Path("dist").glob("*.tar.gz"))
           assert wheels and sdists, "expected wheel + sdist"
-          print("ok:", [p.name for p in wheels + sdists])
+          for w in wheels:
+              assert w.name.startswith(f"eleanity-{expected}-"), w.name
+              with zipfile.ZipFile(w) as z:
+                  meta = next(n for n in z.namelist() if n.endswith("METADATA"))
+                  text = z.read(meta).decode()
+                  m = re.search(r"(?m)^Version:\s*(.+)$", text)
+                  assert m and m.group(1).strip() == expected, (meta, m and m.group(1))
+          for s in sdists:
+              assert s.name.startswith(f"eleanity-{expected}"), s.name
+          print("dist metadata ok for", expected, [p.name for p in wheels + sdists])
           PY
+
+      - name: SHA256 checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          # Portable checksum file committed next to artifacts
+          if command -v sha256sum >/dev/null; then
+            sha256sum * > SHA256SUMS
+          else
+            python - <<'PY'
+          import hashlib, pathlib
+          lines = []
+          for p in sorted(pathlib.Path(".").iterdir()):
+              if p.name == "SHA256SUMS" or not p.is_file():
+                  continue
+              h = hashlib.sha256(p.read_bytes()).hexdigest()
+              lines.append(f"{h}  {p.name}")
+          pathlib.Path("SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+          fi
+          cat SHA256SUMS
+          cd ..
+          cp dist/SHA256SUMS ./SHA256SUMS
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
-          retention-days: 14
+          name: dist-${{ env.VERSION }}
+          path: |
+            dist/
+            SHA256SUMS
+          retention-days: 90
 
       - name: Publish to PyPI
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
+          set -euo pipefail
           if [ -z "${UV_PUBLISH_TOKEN:-}" ]; then
             echo "::error::Missing repository secret PYPI_API_TOKEN."
             echo "Create a token at https://pypi.org/manage/account/token/"
             echo "Then: gh secret set PYPI_API_TOKEN -R TheusHen/eleanity"
-            echo "Or: GitHub → Settings → Secrets and variables → Actions → New repository secret"
             exit 1
           fi
           uv publish --token "$UV_PUBLISH_TOKEN"
+
+      - name: Attach artifacts to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Create release if missing; upload dist + checksums as release assets
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "Eleanity ${VERSION} — built from tag \`${TAG}\` (commit ${GITHUB_SHA}).
+
+          Artifacts include wheel, sdist, and SHA256SUMS. PyPI package version must match this tag."
+          fi
+          gh release upload "$TAG" dist/* SHA256SUMS --clobber
