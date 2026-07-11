@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
@@ -83,7 +83,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Cache Hugging Face hub
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
           key: hf-${{ runner.os }}-${{ env.ELEANITY_CI_MODEL }}-v1
@@ -198,8 +198,8 @@ jobs:
     name: policy matrix (fake, offline)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv python install 3.11
