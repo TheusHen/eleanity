@@ -350,23 +350,24 @@ That keeps the tool **local-first**, **scriptable**, and **honest** in logs — 
 
 ---
 
-## Architecture (short)
+## Architecture
 
-```text
-Scenario YAML ──► adapters (transformers / vllm / llamacpp / …)
-                      │
-                      ▼
-              ObservationTrace + origin
-                      │
-                      ▼
-         Policy comparators + gates + coverage
-                      │
-                      ▼
-     Diagnosis (status, first divergence, confidence, impact)
-                      │
-                      ▼
-         .eleanity/runs/<id>/{result.json,trace.v1.json}
+```mermaid
+flowchart TD
+    A[Scenario YAML]
+    B[Adapters<br/>Transformers / vLLM / llama.cpp / …]
+    C[ObservationTrace + Origin]
+    D[Policy Comparators + Gates + Coverage]
+    E[Diagnosis<br/>Status, First Divergence, Confidence, Impact]
+    F[".eleanity/runs/&lt;id&gt;/<br/>{result.json, trace.v1.json}"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
 ```
+
 
 Deep dives:
 
