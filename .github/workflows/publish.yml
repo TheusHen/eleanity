@@ -1,7 +1,9 @@
 name: publish
 
-# Publishes to PyPI when a v* tag is pushed and PYPI_API_TOKEN is configured.
-# Until the first successful publish, install from git (see README).
+# Build on every v* tag / manual dispatch.
+# Publish to PyPI via Trusted Publishing (OIDC) when the `pypi` environment
+# is linked on https://pypi.org/manage/project/eleanity/settings/publishing/
+# Optional fallback: repository secret PYPI_API_TOKEN.
 
 on:
   push:
@@ -20,6 +22,16 @@ jobs:
       - run: uv python install 3.11
       - run: uv sync --group dev
       - run: uv build
+      - name: Verify dist
+        run: |
+          ls -la dist/
+          python - <<'PY'
+          from pathlib import Path
+          wheels = list(Path("dist").glob("*.whl"))
+          sdists = list(Path("dist").glob("*.tar.gz"))
+          assert wheels and sdists, "expected wheel + sdist"
+          print("ok:", [p.name for p in wheels + sdists])
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: dist
@@ -29,24 +41,43 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
-    environment: pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/p/eleanity
     permissions:
       id-token: write
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-      - name: Publish (Trusted Publishing or token)
+      - name: Publish with token (if secret present)
+        id: token_publish
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           if [ -n "${UV_PUBLISH_TOKEN:-}" ]; then
             uv publish --token "$UV_PUBLISH_TOKEN"
+            echo "published=true" >> "$GITHUB_OUTPUT"
           else
-            echo "PYPI_API_TOKEN not set."
-            echo "Configure Trusted Publishing for eleanity on PyPI, or add PYPI_API_TOKEN."
-            echo "Built artifacts remain available as the dist artifact."
-            ls -la dist/
-            exit 0
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "No PYPI_API_TOKEN; will try Trusted Publishing (OIDC)."
           fi
+      - name: Publish with Trusted Publishing (OIDC)
+        if: steps.token_publish.outputs.published != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        continue-on-error: true
+        with:
+          packages-dir: dist/
+          skip-existing: true
+      - name: Note if publish skipped
+        if: steps.token_publish.outputs.published != 'true'
+        run: |
+          echo "If OIDC publish failed, register Trusted Publisher on PyPI:"
+          echo "  Owner: TheusHen"
+          echo "  Repository: eleanity"
+          echo "  Workflow: publish.yml"
+          echo "  Environment: pypi"
+          echo "Artifacts remain attached to this run."
+          ls -la dist/
