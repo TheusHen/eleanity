@@ -27,6 +27,7 @@ from eleanity.cli.resolve import (
     load_project_optional,
     resolve_compare,
 )
+from eleanity.cli.stdio import configure_cli_stdio
 from eleanity.config import find_project_file, load_project, write_default_project
 from eleanity.core.engine import CompareEngine
 from eleanity.core.golden import golden_gate, save_golden
@@ -39,6 +40,8 @@ from eleanity.reporters.sarif import write_sarif
 from eleanity.scenarios import load_scenarios
 from eleanity.scenarios.suites import list_builtin_suites, load_suite
 from eleanity.version import __version__
+
+configure_cli_stdio()
 
 app = typer.Typer(
     help="Same model. Same input. Find the first divergence. (CLI-first parity diagnostics)",
