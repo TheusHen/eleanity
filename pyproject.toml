@@ -35,7 +35,7 @@ dependencies = [
 transformers = [
   "transformers>=4.45",
   "tokenizers>=0.20",
-  "torch>=2.3",
+  "torch>=2.11",
   "accelerate>=0.33",
   "safetensors>=0.4",
 ]

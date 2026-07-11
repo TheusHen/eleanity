@@ -374,7 +374,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "safetensors", marker = "extra == 'transformers'", specifier = ">=0.4" },
     { name = "tokenizers", marker = "extra == 'transformers'", specifier = ">=0.20" },
-    { name = "torch", marker = "extra == 'transformers'", specifier = ">=2.3" },
+    { name = "torch", marker = "extra == 'transformers'", specifier = ">=2.11" },
     { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.45" },
     { name = "typer", specifier = ">=0.12" },
     { name = "types-jsonschema", marker = "extra == 'dev'", specifier = ">=4.23" },
