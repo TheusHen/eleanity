@@ -25,13 +25,13 @@ Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
 - CI: required checks on `main` (ruff, unit, contract, CLI smoke)
 - GitHub: public repo, discussions, branch protection, secret scanning, private vulnerability reporting
 - Install path: `pip install git+https://github.com/TheusHen/eleanity.git` (and `uvx --from git+…`)
-- Wheel/sdist build; `publish.yml` publishes **only from tag refs** where tag version == `pyproject.toml`, with SHA256SUMS + GitHub Release assets (`PYPI_API_TOKEN`)
+- Wheel/sdist build; `release.yml` automatically bumps the patch version for each `main` commit, publishes to PyPI, creates an immutable tag, and attaches SHA256SUMS + artifacts to a GitHub prerelease (`PYPI_API_TOKEN`)
 
 ## Explicitly incomplete
 
 | Area | Status |
 | --- | --- |
-| PyPI published name `eleanity` | Workflow ready with tag↔version integrity — add `PYPI_API_TOKEN`, ensure tag commit matches version, run publish |
+| PyPI published name `eleanity` | Published; automated releases require the `PYPI_API_TOKEN` repository secret |
 | Org home `eleanity/eleanity` | Deferred; stay on `TheusHen/eleanity` |
 | Deep logits on all HTTP backends | Partial / often NOT_EXPOSED |
 | Fine-grained decode step IDs | Spec ready; adapters lag |
@@ -41,7 +41,7 @@ Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
 
 ## Near-term
 
-1. Set `PYPI_API_TOKEN` and run the **publish** workflow (tag `v0.4.0` already exists)
+1. Configure `PYPI_API_TOKEN` (and `RELEASE_PAT` only if protected-branch rules require it)
 2. Transfer repository to GitHub org `eleanity` when the org exists
 3. Deepen Transformers + one HTTP adapter (template/tokenize paths)
 4. Expand public fixtures with known real-world divergences

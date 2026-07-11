@@ -11,6 +11,9 @@ on:
     paths:
       - "fixtures/**"
       - "src/eleanity/**"
+  schedule:
+    # Re-run the public corpus even when its files have not changed.
+    - cron: "30 4 * * 1"
   workflow_dispatch:
 
 jobs:

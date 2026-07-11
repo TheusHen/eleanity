@@ -57,33 +57,26 @@ uv run eleanity --help
 
 ### PyPI
 
-After the first successful tag publish:
-
 ```bash
 pip install eleanity
-# pre-release / alpha pin if needed:
+# pin a specific alpha release if needed:
 pip install "eleanity==0.4.0"
 ```
 
-Publish via GitHub Actions (`publish.yml`):
-
-- **Push tag** `vX.Y.Z` → version must match `pyproject.toml`
-- **Actions → publish → Run workflow** on `main` (or any branch) → uses version from that tree, builds, uploads to PyPI, then creates/moves tag `v{version}` to that commit
+Every non-release commit pushed to `main` is released automatically by
+[`release.yml`](.github/workflows/release.yml). The workflow increments the
+patch version in `pyproject.toml` and `src/eleanity/version.py`, runs the
+quality suite, publishes to PyPI, then creates an immutable `vX.Y.Z` tag and a
+GitHub prerelease with the wheel, sdist, and SHA256 checksums.
 
 ```bash
-# secret once:
+# Required repository secret (once):
 gh secret set PYPI_API_TOKEN -R TheusHen/eleanity
-
-# publish current main as the version in pyproject.toml:
-gh workflow run publish.yml -R TheusHen/eleanity --ref main
-
-# or push a tag that already matches pyproject version:
-git tag v0.4.0 && git push origin v0.4.0
 ```
 
-The job verifies wheel/sdist metadata, writes **SHA256SUMS**, and attaches them to the GitHub Release.
-
-Until a release is published, use **git install** above.
+If branch protection does not allow GitHub Actions to push the version commit,
+also configure a fine-grained `RELEASE_PAT` with repository Contents read/write
+permission. The job verifies wheel/sdist metadata and writes **SHA256SUMS**.
 
 Requires **Python 3.11+**.
 
@@ -327,7 +320,7 @@ Full reference: [docs/api.md](docs/api.md).
 | `ci.yml` typecheck job | **Informational mypy** (does not fail the workflow in 0.4.x) |
 | `parity-local-ai.yml` | Downloads SmolLM2-135M and runs real Transformers self-parity |
 | `parity-public-fixtures.yml` | Public fixture suites |
-| `publish.yml` | Build + publish to PyPI on `v*` tags (secret `PYPI_API_TOKEN`) |
+| `release.yml` | Automatic patch version, PyPI prerelease, immutable tag, and GitHub Release for each `main` commit |
 | `eleanity.yml` | Reusable monorepo gate |
 
 Local:
