@@ -1723,3 +1723,24 @@ def trace_validate_cmd(
         raise
     except Exception as error:
         raise typer.Exit(emit_error(error, fmt=format))  # type: ignore[arg-type]
+
+
+@app.command()
+def version() -> None:
+    """Show the Eleanity CLI version."""
+    console.print(f"Eleanity version {__version__}")
+
+
+@app.command()
+def update() -> None:
+    """Update Eleanity CLI to the latest version."""
+    import subprocess
+    import sys
+
+    try:
+        console.print("Updating Eleanity...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "eleanity"])
+        console.print("[green]Successfully updated Eleanity![/green]")
+    except Exception as error:
+        console.print(f"[red]Failed to update:[/red] {error}")
+        raise typer.Exit(1)
