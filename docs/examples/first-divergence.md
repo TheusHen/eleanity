@@ -45,36 +45,42 @@ uv run python scripts/examples/demo_template_divergence.py
 
 This reproduces the class of bug often seen when one runtime applies chat templates with generation prompt and another does not.
 
-## C. Cross-runtime Transformers × OpenAI-compat HTTP (reproducible)
+## C. Cross-runtime Transformers × real HF OpenAI-compat HTTP
 
-Helper (starts mock server, runs compare, stops server):
+Both sides use **real** SmolLM2 weights:
+
+- baseline: in-process `transformers` adapter  
+- candidate: `vllm` HTTP adapter → `hf_openai_server.py` (Transformers-backed OpenAI-compat server)
 
 ```bash
+uv sync --extra transformers
 uv run python scripts/examples/run_cross_runtime_demo.py
 ```
+
+Default mode starts the server with `--omit-generation-prompt` (real template-class misconfig).  
+For a parity attempt: `ELEANITY_DEMO_MATCH=1 uv run python scripts/examples/run_cross_runtime_demo.py`.
 
 Live capture:
 
 ```text
 status=DIVERGENT impact=HIGH coverage=50.0 confidence=0.762
 first_divergence=generation
-run_id=ca69f154-5c0e-4a81-8401-f81fed942ab0
+run_id=90028893-8848-463f-9331-daf5268f60b5
 ```
 
 | Side | Stack | Generation text |
 | --- | --- | --- |
-| baseline | transformers · SmolLM2-135M-Instruct | `Hello! How can I help you today?` |
-| candidate | vllm adapter → mock OpenAI server :8765 | `hi from divergent mock (...)` |
+| baseline | transformers in-process | `Hello! How can I help you today?` |
+| candidate | HF OpenAI-compat server (omit AGP) | `assistant\nHello! How can I help you today?` |
 
 | Layer | Baseline | Candidate | Compare |
 | --- | --- | --- | --- |
-| artifact | OBSERVED | OBSERVED | (soft under quantized) |
+| artifact | OBSERVED | OBSERVED | soft under quantized |
 | template | OBSERVED | NOT_SUPPORTED | not mutually verified |
 | tokens | OBSERVED | NOT_EXPOSED | not mutually verified |
 | generation | OBSERVED | OBSERVED | **DIVERGENT** |
 
-Mock server: `scripts/examples/mock_openai_diverge.py`  
-Point the same commands at real LM Studio / vLLM serve by changing `--backend-url vllm=http://127.0.0.1:PORT`.
+Offline fixed-string stub (not a real model): `scripts/examples/mock_openai_diverge.py`.
 
 ## D. Real LM Studio / vLLM serve (your hardware)
 

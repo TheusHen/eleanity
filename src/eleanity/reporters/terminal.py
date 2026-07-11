@@ -7,9 +7,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from eleanity import __version__
 from eleanity.core.coverage import format_timings
 from eleanity.models.schemas import LAYER_ORDER
+from eleanity.version import __version__
 
 
 def _status_style(status: str) -> str:

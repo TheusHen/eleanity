@@ -18,7 +18,7 @@ CLI-first tool for **LLM runtime parity**. It compares inference stacks on the s
 
 It does **not** score model quality (no MMLU). It checks whether two runtimes still share the same causal path: artifact → template → special tokens → token IDs → generation / API.
 
-**Product surface is CLI only** (`text` / `json` / `quiet` / `sarif`).
+**Product surfaces:** CLI (`text` / `json` / `quiet` / `sarif`) and a **Python API** for embedding without subprocess — see [docs/api.md](docs/api.md).
 
 > **Hosting note:** the repository currently lives at  
 > [`TheusHen/eleanity`](https://github.com/TheusHen/eleanity) (alpha).  
@@ -36,8 +36,8 @@ uvx --from git+https://github.com/TheusHen/eleanity.git eleanity --help
 
 # or install into an environment
 pip install "git+https://github.com/TheusHen/eleanity.git"
-# optional HF backend
-pip install "git+https://github.com/TheusHen/eleanity.git[transformers]"
+# optional HF backend (PEP 508 direct reference + extras)
+pip install "eleanity[transformers] @ git+https://github.com/TheusHen/eleanity.git"
 ```
 
 ```bash
@@ -57,8 +57,33 @@ uv run eleanity --help
 
 ### PyPI
 
-PyPI publish is wired (`publish.yml` on `v*` tags) but **not yet released**.  
-Until `pip install eleanity` resolves on PyPI, use **git install** above. See [ROADMAP.md](ROADMAP.md).
+After the first successful tag publish:
+
+```bash
+pip install eleanity
+# pre-release / alpha pin if needed:
+pip install "eleanity==0.4.0"
+```
+
+Publish via GitHub Actions (`publish.yml`):
+
+- **Push tag** `vX.Y.Z` → version must match `pyproject.toml`
+- **Actions → publish → Run workflow** on `main` (or any branch) → uses version from that tree, builds, uploads to PyPI, then creates/moves tag `v{version}` to that commit
+
+```bash
+# secret once:
+gh secret set PYPI_API_TOKEN -R TheusHen/eleanity
+
+# publish current main as the version in pyproject.toml:
+gh workflow run publish.yml -R TheusHen/eleanity --ref main
+
+# or push a tag that already matches pyproject version:
+git tag v0.4.0 && git push origin v0.4.0
+```
+
+The job verifies wheel/sdist metadata, writes **SHA256SUMS**, and attaches them to the GitHub Release.
+
+Until a release is published, use **git install** above.
 
 Requires **Python 3.11+**.
 
@@ -133,24 +158,33 @@ This validates the **engine + Transformers path**.
 
 ---
 
-## Cross-runtime DIVERGENT (Transformers × OpenAI-compat HTTP)
+## Cross-runtime DIVERGENT (Transformers × real HF OpenAI-compat HTTP)
 
-Real pair: **Transformers (local HF weights)** vs **vLLM adapter** pointed at a local OpenAI-compatible server.
+**Both sides run real Hugging Face weights** (SmolLM2-135M-Instruct):
 
-The repo ships a mock server that answers `/v1/chat/completions` but **does not** expose template/tokenize — same honesty profile as many LM Studio / gateway setups.
+| Side | Runtime path |
+| --- | --- |
+| Baseline | `transformers` adapter (in-process) |
+| Candidate | `vllm` adapter → local OpenAI-compat server that **loads the same HF model** via Transformers |
+
+The HTTP server does **not** expose template/tokenize endpoints (same honesty profile as many LM Studio / gateway setups). By default it applies the chat template **without** the assistant generation prompt — a common production bug — so generation diverges for a causal reason, not a hard-coded string.
 
 ### Commands (exact)
 
 ```bash
-# one process starts mock server, runs doctor + compare, stops server
+uv sync --group dev --extra transformers
+
+# starts real HF server, runs doctor + compare, stops server
 uv run python scripts/examples/run_cross_runtime_demo.py
 ```
 
 Under the hood:
 
 ```bash
-# terminal A (or the helper starts this for you)
-uv run python scripts/examples/mock_openai_diverge.py --port 8765
+# terminal A
+uv run python scripts/examples/hf_openai_server.py \
+  --port 8765 --preload --omit-generation-prompt \
+  --model HuggingFaceTB/SmolLM2-135M-Instruct
 
 # terminal B
 export ELEANITY_VLLM_URL=http://127.0.0.1:8765
@@ -164,24 +198,28 @@ uv run eleanity compare \
   --observe artifact,template,tokens,generation,api
 ```
 
+Parity attempt (server uses full AGP): `ELEANITY_DEMO_MATCH=1 uv run python scripts/examples/run_cross_runtime_demo.py`
+
+Point the same commands at LM Studio / vLLM serve by changing `--backend-url`. Offline fixed-string stub (CI without GPU weights): `scripts/examples/mock_openai_diverge.py`.
+
 ### Exact quiet output (live run)
 
 ```text
-status=DIVERGENT impact=HIGH coverage=50.0 confidence=0.762 first_divergence=generation gates=False run_id=ca69f154-5c0e-4a81-8401-f81fed942ab0
+status=DIVERGENT impact=HIGH coverage=50.0 confidence=0.762 first_divergence=generation gates=False run_id=90028893-8848-463f-9331-daf5268f60b5
 ```
 
 | Field | Value |
 | --- | --- |
-| Baseline | transformers · `HuggingFaceTB/SmolLM2-135M-Instruct` (HF bf16 safetensors) |
-| Candidate | vllm adapter → `http://127.0.0.1:8765` (OpenAI-compat mock) |
+| Baseline | transformers · `HuggingFaceTB/SmolLM2-135M-Instruct` (HF weights, in-process) |
+| Candidate | vllm adapter → `hf_openai_server.py` (same HF weights over HTTP, `--omit-generation-prompt`) |
 | Policy | `quantized` |
 | Status | **DIVERGENT** |
 | First divergence | **generation** |
-| Coverage | **50%** required layers (template/tokens not mutually observed) |
+| Coverage | **50%** required layers (template/tokens not mutually observed on HTTP) |
 | Verified | artifact, generation |
 | Not verified | template (`NOT_SUPPORTED` on HTTP), tokens (`NOT_EXPOSED` on HTTP) |
-| Generation texts | transformers: `Hello! How can I help you today?` · HTTP: `hi from divergent mock (...)` |
-| Engine total | ~9785 ms |
+| Generation texts | transformers: `Hello! How can I help you today?` · HTTP: `assistant\nHello! How can I help you today?` |
+| Engine total | ~8287 ms |
 
 Reproduction command stored on the run:
 
@@ -192,7 +230,7 @@ eleanity compare --model HuggingFaceTB/SmolLM2-135M-Instruct --backends transfor
   --backend-url vllm=http://127.0.0.1:8765 --format text
 ```
 
-This is the cross-stack claim: **different runtimes, localized first divergence, honest missing layers**.
+This is the cross-stack claim: **two real runtimes, same model weights, localized first divergence, honest missing layers**.
 
 ---
 
@@ -265,6 +303,22 @@ Full reference: [docs/cli.md](docs/cli.md)
 
 ---
 
+## Python API (no subprocess)
+
+```python
+from eleanity import Eleanity
+
+client = Eleanity()  # or Eleanity.from_yaml("eleanity.yaml")
+result = client.compare(model="demo", backends=["fake", "fake"], no_gates=True)
+print(result.status, result.first_divergence, result.coverage)
+raise SystemExit(result.exit_code)
+```
+
+Low-level observe/compare: `from eleanity.api import observe_backend, compare_traces, make_scenario`.  
+Full reference: [docs/api.md](docs/api.md).
+
+---
+
 ## CI
 
 | Workflow | Role |
@@ -273,7 +327,7 @@ Full reference: [docs/cli.md](docs/cli.md)
 | `ci.yml` typecheck job | **Informational mypy** (does not fail the workflow in 0.4.x) |
 | `parity-local-ai.yml` | Downloads SmolLM2-135M and runs real Transformers self-parity |
 | `parity-public-fixtures.yml` | Public fixture suites |
-| `publish.yml` | Build/publish on `v*` tags when PyPI credentials exist |
+| `publish.yml` | Build + publish to PyPI on `v*` tags (secret `PYPI_API_TOKEN`) |
 | `eleanity.yml` | Reusable monorepo gate |
 
 Local:
@@ -291,6 +345,7 @@ uv run pytest -q
 | Doc | Purpose |
 | --- | --- |
 | [docs/cli.md](docs/cli.md) | CLI reference |
+| [docs/api.md](docs/api.md) | Python client + low-level API |
 | [docs/parity-specification.md](docs/parity-specification.md) | Status + comparator tables |
 | [docs/adapter-capabilities.md](docs/adapter-capabilities.md) | Honesty matrix |
 | [docs/trace-specification.md](docs/trace-specification.md) | Trace Spec v1 |

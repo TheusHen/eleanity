@@ -1,83 +1,231 @@
 name: publish
 
-# Build on every v* tag / manual dispatch.
-# Publish to PyPI via Trusted Publishing (OIDC) when the `pypi` environment
-# is linked on https://pypi.org/manage/project/eleanity/settings/publishing/
-# Optional fallback: repository secret PYPI_API_TOKEN.
+# PyPI release with version integrity.
+#
+# Triggers:
+#   1) push of tag v*  → tag name must match pyproject version; builds that tag commit
+#   2) workflow_dispatch (any branch, e.g. main) → builds selected ref;
+#      version comes from pyproject.toml; creates/moves tag v{version} to that commit
+#
+# Required secret: PYPI_API_TOKEN
 
 on:
   push:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build only (skip PyPI upload)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # For tag pushes this is the tag; for dispatch it is the selected branch tip.
+          ref: ${{ github.ref }}
+
+      - name: Resolve version and tag
+        id: meta
+        run: |
+          set -euo pipefail
+          echo "event=${{ github.event_name }} ref=${GITHUB_REF}"
+
+          PY_VERSION="$(python - <<'PY'
+          import re, pathlib
+          text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
+          m = re.search(r'(?m)^version\s*=\s*"([^"]+)"', text)
+          if not m:
+              raise SystemExit("version not found in pyproject.toml")
+          print(m.group(1))
+          PY
+          )"
+          echo "pyproject version=$PY_VERSION"
+
+          if [[ -f src/eleanity/__init__.py ]]; then
+            INIT_VERSION="$(python - <<'PY'
+          import re, pathlib
+          text = pathlib.Path("src/eleanity/__init__.py").read_text(encoding="utf-8")
+          m = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', text)
+          print(m.group(1) if m else "")
+          PY
+          )"
+            if [[ -n "$INIT_VERSION" && "$INIT_VERSION" != "$PY_VERSION" ]]; then
+              echo "::error::__version__ ($INIT_VERSION) != pyproject version ($PY_VERSION)"
+              exit 1
+            fi
+          fi
+
+          if [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            VERSION="${TAG#v}"
+            if [[ "$VERSION" != "$PY_VERSION" ]]; then
+              echo "::error::Tag $TAG does not match pyproject version $PY_VERSION"
+              exit 1
+            fi
+            HEAD_SHA="$(git rev-parse HEAD)"
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            if [[ "$HEAD_SHA" != "$TAG_SHA" ]]; then
+              echo "::error::Checkout HEAD ($HEAD_SHA) != tag $TAG ($TAG_SHA)"
+              exit 1
+            fi
+            echo "mode=tag-push"
+          else
+            # workflow_dispatch (or unexpected): version from tree is source of truth
+            VERSION="$PY_VERSION"
+            TAG="v${VERSION}"
+            echo "mode=dispatch"
+            echo "Will publish commit $(git rev-parse --short HEAD) as $TAG"
+          fi
+
+          if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+)*([a-zA-Z0-9._+-]+)?$ ]]; then
+            echo "::error::Invalid version: $VERSION"
+            exit 1
+          fi
+
+          {
+            echo "VERSION=$VERSION"
+            echo "TAG=$TAG"
+          } >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-      - run: uv python install 3.11
-      - run: uv sync --group dev
-      - run: uv build
-      - name: Verify dist
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Build sdist + wheel
+        run: uv build
+
+      - name: Verify dist metadata version
         run: |
-          ls -la dist/
-          python - <<'PY'
+          set -euo pipefail
+          python - <<PY
+          import re, zipfile
           from pathlib import Path
+          expected = "${VERSION}"
           wheels = list(Path("dist").glob("*.whl"))
           sdists = list(Path("dist").glob("*.tar.gz"))
           assert wheels and sdists, "expected wheel + sdist"
-          print("ok:", [p.name for p in wheels + sdists])
+          for w in wheels:
+              assert w.name.startswith(f"eleanity-{expected}-"), w.name
+              with zipfile.ZipFile(w) as z:
+                  meta = next(n for n in z.namelist() if n.endswith("METADATA"))
+                  text = z.read(meta).decode()
+                  m = re.search(r"(?m)^Version:\s*(.+)$", text)
+                  assert m and m.group(1).strip() == expected, (meta, m and m.group(1))
+          for s in sdists:
+              assert s.name.startswith(f"eleanity-{expected}"), s.name
+          print("dist metadata ok for", expected, [p.name for p in wheels + sdists])
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
 
-  publish-pypi:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/eleanity
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/download-artifact@v4
+      - name: SHA256 checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+          cd ..
+          cp dist/SHA256SUMS ./SHA256SUMS
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
-      - name: Publish with token (if secret present)
-        id: token_publish
+          name: dist-${{ env.VERSION }}
+          path: |
+            dist/
+            SHA256SUMS
+          retention-days: 90
+
+      - name: Publish to PyPI
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run == false }}
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          if [ -n "${UV_PUBLISH_TOKEN:-}" ]; then
-            uv publish --token "$UV_PUBLISH_TOKEN"
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "No PYPI_API_TOKEN; will try Trusted Publishing (OIDC)."
+          set -euo pipefail
+          if [ -z "${UV_PUBLISH_TOKEN:-}" ]; then
+            echo "::error::Missing repository secret PYPI_API_TOKEN."
+            exit 1
           fi
-      - name: Publish with Trusted Publishing (OIDC)
-        if: steps.token_publish.outputs.published != 'true'
-        uses: pypa/gh-action-pypi-publish@release/v1
-        continue-on-error: true
-        with:
-          packages-dir: dist/
-          skip-existing: true
-      - name: Note if publish skipped
-        if: steps.token_publish.outputs.published != 'true'
+          set +e
+          OUT="$(uv publish --token "$UV_PUBLISH_TOKEN" 2>&1)"
+          CODE=$?
+          set -e
+          echo "$OUT"
+          if [[ $CODE -eq 0 ]]; then
+            exit 0
+          fi
+          if echo "$OUT" | grep -qiE 'already exists|File already exists|403.*already'; then
+            echo "::warning::Version ${VERSION} already on PyPI — keeping job green."
+            exit 0
+          fi
+          exit "$CODE"
+
+      - name: Ensure git tag points at this commit
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "If OIDC publish failed, register Trusted Publisher on PyPI:"
-          echo "  Owner: TheusHen"
-          echo "  Repository: eleanity"
-          echo "  Workflow: publish.yml"
-          echo "  Environment: pypi"
-          echo "Artifacts remain attached to this run."
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            if [[ "$TAG_SHA" == "$HEAD_SHA" ]]; then
+              echo "Tag $TAG already points at $HEAD_SHA"
+            else
+              echo "Moving tag $TAG: $TAG_SHA → $HEAD_SHA (dispatch release of current tree)"
+              git tag -f "$TAG" "$HEAD_SHA"
+              git push origin "refs/tags/$TAG" --force
+            fi
+          else
+            echo "Creating tag $TAG at $HEAD_SHA"
+            git tag "$TAG" "$HEAD_SHA"
+            git push origin "refs/tags/$TAG"
+          fi
+
+      - name: Attach artifacts to GitHub Release
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run == false }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NOTES="Eleanity ${VERSION}
+
+          - Commit: \`${GITHUB_SHA}\`
+          - Tag: \`${TAG}\`
+          - Artifacts: wheel, sdist, SHA256SUMS
+          "
+          # Only upload files under dist/ (includes SHA256SUMS). Do not also
+          # pass a root SHA256SUMS — duplicate names break the upload API.
+          shopt -s nullglob
+          assets=(dist/*)
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "::error::No files in dist/"
+            exit 1
+          fi
           ls -la dist/
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Delete existing assets with same names then re-upload (clobber can 404)
+            for f in "${assets[@]}"; do
+              name="$(basename "$f")"
+              gh release delete-asset "$TAG" "$name" --yes 2>/dev/null || true
+            done
+            gh release upload "$TAG" "${assets[@]}"
+          else
+            gh release create "$TAG" "${assets[@]}" \
+              --title "$TAG" \
+              --notes "$NOTES" \
+              --verify-tag
+          fi
