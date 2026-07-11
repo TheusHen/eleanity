@@ -1,0 +1,31 @@
+schema_version: "0.1"
+name: qwen3-14b-ollama-vs-llamacpp
+
+model:
+  id: "hf.co/Qwen/Qwen3-14B-GGUF:Q4_K_M"
+  quantization: Q4_K_M
+
+messages:
+  - role: system
+    content: "Follow the requested output format exactly. Do not explain."
+  - role: user
+    content: "Return only the first twelve prime numbers separated by commas, with no spaces. /no_think"
+
+parameters:
+  temperature: 0
+  top_p: 1.0
+  max_tokens: 48
+  seed: 42
+
+generation:
+  add_generation_prompt: true
+
+observe:
+  - artifact
+  - template
+  - special_tokens
+  - tokens
+  - generation
+  - api
+
+parity_policy: quantized
