@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from rich.console import Console
 
-from eleanity import __version__
+from eleanity.version import __version__
 from eleanity.cli.errors import EleanityError
 from eleanity.cli.exitcodes import EXIT_CONFIG, exit_from_diagnosis
 from eleanity.reporters.terminal import print_terminal

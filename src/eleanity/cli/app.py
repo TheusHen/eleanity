@@ -11,7 +11,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from eleanity import __version__
+from eleanity.version import __version__
 from eleanity.adapters import adapter_for, available_adapters
 from eleanity.cli.backends_check import check_backends, ensure_local_dep
 from eleanity.cli.errors import (
