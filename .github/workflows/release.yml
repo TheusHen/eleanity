@@ -77,7 +77,9 @@ jobs:
           version_file = Path("src/eleanity/version.py")
           source = version_file.read_text(encoding="utf-8")
           updated, count = re.subn(
-              r'(?m)^__version__\s*=\s*"[^"]+"\s*$',
+              # Keep the line ending: Ruff requires the generated module to
+              # retain its final newline.
+              r'(?m)^__version__[ \t]*=[ \t]*"[^"]+"[ \t]*$',
               f'__version__ = "{version}"',
               source,
           )
