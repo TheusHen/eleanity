@@ -20,6 +20,22 @@ It does **not** score model quality (no MMLU). It checks whether two runtimes st
 
 **Product surfaces:** CLI (`text` / `json` / `quiet` / `sarif`) and a **Python API** for embedding without subprocess — see [docs/api.md](docs/api.md).
 
+## Try the core idea offline
+
+```bash
+uvx eleanity demo
+```
+
+```text
+status:            DIVERGENT
+first_divergence:  template
+baseline_template: 'user: Hello\nassistant:'
+candidate_template:'user: Hello'
+probable_cause:    CHAT_TEMPLATE_DIFFERENT (confidence=0.92)
+```
+
+No model download, GPU, server, account, or network endpoint is required.
+
 > **Hosting note:** the repository currently lives at  
 > [`TheusHen/eleanity`](https://github.com/TheusHen/eleanity) (alpha).  
 > Transfer to `eleanity/eleanity` is planned when the org is available ([ROADMAP.md](ROADMAP.md)).
@@ -82,7 +98,7 @@ Requires **Python 3.11+**.
 
 ---
 
-## 60-second offline check
+## Offline parity check
 
 ```bash
 uv run eleanity compare --model demo --backends fake,fake \

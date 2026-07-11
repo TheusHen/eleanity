@@ -29,6 +29,7 @@ from eleanity.cli.resolve import (
 )
 from eleanity.cli.stdio import configure_cli_stdio
 from eleanity.config import find_project_file, load_project, write_default_project
+from eleanity.core.demo import render_template_divergence_demo, run_template_divergence_demo
 from eleanity.core.engine import CompareEngine
 from eleanity.core.golden import golden_gate, save_golden
 from eleanity.core.pull import pull_model
@@ -117,6 +118,22 @@ def _prepare_scenario(scenario: Scenario | None, resolved) -> Scenario:
             }
         )
     return scenario
+
+
+@app.command()
+def demo(format: str = FormatOpt) -> None:
+    """Run a deterministic offline first-divergence demonstration."""
+
+    result = run_template_divergence_demo()
+    if format == "json":
+        typer.echo(json.dumps(result, indent=2, sort_keys=True))
+    elif format == "quiet":
+        typer.echo(
+            f"status={result['status']} first_divergence={result['first_divergence']} "
+            f"probable_cause={result['probable_cause']}"
+        )
+    else:
+        console.print(render_template_divergence_demo(result))
 
 
 @app.command()

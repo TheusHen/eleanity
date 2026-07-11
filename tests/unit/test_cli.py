@@ -32,3 +32,13 @@ def test_help_survives_legacy_cp1252_encoding():
 
     assert completed.returncode == 0, completed.stderr.decode("cp1252", errors="replace")
     assert b"Usage:" in completed.stdout
+
+
+def test_demo_exposes_first_template_divergence():
+    result = CliRunner().invoke(app, ["demo", "--format", "json"])
+
+    assert result.exit_code == 0
+    payload = __import__("json").loads(result.stdout)
+    assert payload["status"] == "DIVERGENT"
+    assert payload["first_divergence"] == "template"
+    assert payload["probable_cause"] == "CHAT_TEMPLATE_DIFFERENT"
