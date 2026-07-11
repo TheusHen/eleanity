@@ -206,11 +206,26 @@ jobs:
           - Tag: \`${TAG}\`
           - Artifacts: wheel, sdist, SHA256SUMS
           "
+          # Only upload files under dist/ (includes SHA256SUMS). Do not also
+          # pass a root SHA256SUMS — duplicate names break the upload API.
+          shopt -s nullglob
+          assets=(dist/*)
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "::error::No files in dist/"
+            exit 1
+          fi
+          ls -la dist/
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/* SHA256SUMS --clobber
+            # Delete existing assets with same names then re-upload (clobber can 404)
+            for f in "${assets[@]}"; do
+              name="$(basename "$f")"
+              gh release delete-asset "$TAG" "$name" --yes 2>/dev/null || true
+            done
+            gh release upload "$TAG" "${assets[@]}"
           else
-            gh release create "$TAG" dist/* SHA256SUMS \
+            gh release create "$TAG" "${assets[@]}" \
               --title "$TAG" \
               --notes "$NOTES" \
-              --latest=false
+              --verify-tag
           fi
