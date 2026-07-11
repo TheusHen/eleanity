@@ -7,11 +7,11 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from eleanity.version import __version__
 from eleanity.comparators.diff import compare_prompt, compare_tokens
 from eleanity.core.coverage import format_timings
 from eleanity.models.schemas import ParityResult
 from eleanity.playbook import get_playbook_entry
+from eleanity.version import __version__
 
 
 def render_text_report(data: dict[str, Any], *, redact: bool = True) -> str:

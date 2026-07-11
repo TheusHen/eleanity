@@ -8,10 +8,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from eleanity.version import __version__
 from eleanity.spec.capsule import ExecutionCapsule
 from eleanity.spec.impact import ImpactAssessment
 from eleanity.spec.parity import FormalParityStatus, formal_status_from_parity, policy_comparator_set
+from eleanity.version import __version__
 
 TRACE_SCHEMA_VERSION = "1.0.0"
 TRACE_SCHEMA_ID = "https://eleanity.dev/schemas/eleanity-trace-v1.schema.json"

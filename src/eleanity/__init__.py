@@ -5,7 +5,6 @@ Product surfaces:
   - Python API: :class:`eleanity.Eleanity` client (+ low-level helpers in :mod:`eleanity.api`)
 """
 
-from eleanity.version import __version__
 from eleanity.api import (  # noqa: I001 — version first avoids circular imports
     EXIT_CONFIG,
     EXIT_DIVERGENT,
@@ -22,6 +21,7 @@ from eleanity.api import (  # noqa: I001 — version first avoids circular impor
     make_scenario,
     observe_backend,
 )
+from eleanity.version import __version__
 
 __all__ = [
     "__version__",

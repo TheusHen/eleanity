@@ -11,7 +11,6 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from eleanity.version import __version__
 from eleanity.adapters import adapter_for, available_adapters
 from eleanity.cli.backends_check import check_backends, ensure_local_dep
 from eleanity.cli.errors import (
@@ -39,6 +38,7 @@ from eleanity.playbook import get_playbook_entry, render_playbook_markdown
 from eleanity.reporters.sarif import write_sarif
 from eleanity.scenarios import load_scenarios
 from eleanity.scenarios.suites import list_builtin_suites, load_suite
+from eleanity.version import __version__
 
 app = typer.Typer(
     help="Same model. Same input. Find the first divergence. (CLI-first parity diagnostics)",
