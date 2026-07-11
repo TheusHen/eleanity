@@ -16,7 +16,7 @@ Legend:
 | **fake** | yes | yes | yes | no | yes | partial | yes | partial | Deterministic offline adapter for CI |
 | **transformers** | yes | yes | yes | partial | yes | partial | no | no | Requires `eleanity[transformers]`; logits only if forward path works |
 | **vllm** (HTTP) | partial | partial | no | no | yes | partial | partial | yes | Needs `ELEANITY_VLLM_URL` (vLLM serve / LM Studio / OpenAI-compat). Template/tokenize only if server exposes extras |
-| **vllm** (embedded) | partial | partial | no | no | partial | no | no | no | Optional `ELEANITY_VLLM_MODE=embedded` + `vllm` package; early |
+| **vllm** (embedded) | partial | partial | no | no | partial | no | no | no | Install `vllm` separately in a restricted runtime environment; early |
 | **llamacpp** | partial | partial | no | no | yes | partial | partial | yes | HTTP OpenAI-compat; local GGUF inspect via `eleanity gguf` |
 | **ollama** | no | no | no | no | yes | partial | partial | yes | OpenAI-compat `/v1` when available |
 | **sglang** | partial | partial | no | no | yes | partial | partial | yes | HTTP OpenAI-compat |
