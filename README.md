@@ -63,20 +63,19 @@ pip install eleanity
 pip install "eleanity==0.4.0"
 ```
 
-Every non-release commit pushed to `main` opens an automated patch-release PR
-through [`release.yml`](.github/workflows/release.yml). Required checks run on
-that PR; auto-merge then publishes the merged commit to PyPI and creates an
-immutable `vX.Y.Z` tag plus a GitHub prerelease with the wheel, sdist, and
-SHA256 checksums. This keeps protected `main` free of direct bot pushes.
+Every non-release commit pushed to `main` is released automatically through
+[`release.yml`](.github/workflows/release.yml). The workflow increments the
+patch version directly on `main`, runs the quality suite, publishes to PyPI,
+then creates an immutable `vX.Y.Z` tag and GitHub prerelease with the wheel,
+sdist, and SHA256 checksums.
 
 ```bash
 # Required repository secret (once):
 gh secret set PYPI_API_TOKEN -R TheusHen/eleanity
 ```
 
-Configure a fine-grained `RELEASE_PAT` with repository Contents and Pull
-Requests read/write permissions, and enable **Allow auto-merge** in the GitHub
-repository. It creates the release branch/PR so that required checks run; the
+Configure a fine-grained `RELEASE_PAT` for an account allowed to bypass the
+protected-branch checks when Actions writes the generated version commit. The
 job verifies wheel/sdist metadata and writes **SHA256SUMS**.
 
 Requires **Python 3.11+**.

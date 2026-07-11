@@ -25,7 +25,7 @@ Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
 - CI: required checks on `main` (ruff, unit, contract, CLI smoke)
 - GitHub: public repo, discussions, branch protection, secret scanning, private vulnerability reporting
 - Install path: `pip install git+https://github.com/TheusHen/eleanity.git` (and `uvx --from git+…`)
-- Wheel/sdist build; `release.yml` opens and auto-merges a protected-branch release PR for each `main` commit, then publishes to PyPI, creates an immutable tag, and attaches SHA256SUMS + artifacts to a GitHub prerelease (`PYPI_API_TOKEN`)
+- Wheel/sdist build; `release.yml` automatically bumps the patch version directly on `main`, publishes to PyPI, creates an immutable tag, and attaches SHA256SUMS + artifacts to a GitHub prerelease (`PYPI_API_TOKEN`)
 
 ## Explicitly incomplete
 
@@ -41,7 +41,7 @@ Org transfer to `eleanity/eleanity` stays deferred until the GitHub org exists.
 
 ## Near-term
 
-1. Configure `PYPI_API_TOKEN`, `RELEASE_PAT`, and GitHub's **Allow auto-merge** setting
+1. Configure `PYPI_API_TOKEN` and `RELEASE_PAT` (with protected-branch bypass)
 2. Transfer repository to GitHub org `eleanity` when the org exists
 3. Deepen Transformers + one HTTP adapter (template/tokenize paths)
 4. Expand public fixtures with known real-world divergences
