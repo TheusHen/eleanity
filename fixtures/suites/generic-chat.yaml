@@ -1,0 +1,44 @@
+scenarios:
+  - schema_version: "0.1"
+    name: generic-system-user
+    description: Portable system+user chat (model-agnostic wording)
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+      revision: main
+    messages:
+      - role: system
+        content: You are a careful assistant.
+      - role: user
+        content: Reply with exactly one short sentence.
+    parameters: {temperature: 0, max_tokens: 24, seed: 42}
+    generation: {add_generation_prompt: true}
+    observe: [artifact, template, special_tokens, tokens, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: generic-multiturn
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+    messages:
+      - role: user
+        content: Define a stack.
+      - role: assistant
+        content: A LIFO data structure.
+      - role: user
+        content: Give one use case.
+    parameters: {temperature: 0, max_tokens: 24, seed: 42}
+    observe: [template, tokens, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: generic-tokenizer-only
+    description: Cheap CI scenario (no generation required)
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+      tokenizer_only: true
+    messages:
+      - role: user
+        content: Tokenize this — café 😀 中文
+    parameters: {temperature: 0, max_tokens: 1, seed: 1}
+    observe: [artifact, template, special_tokens, tokens]
+    parity_policy: strict

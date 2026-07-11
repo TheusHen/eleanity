@@ -1,0 +1,45 @@
+scenarios:
+  - schema_version: "0.1"
+    name: tool-weather-basic
+    description: Functional tool-calling style prompt
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+      trust_remote_code: false
+    messages:
+      - role: system
+        content: You are a tool-using assistant. Prefer structured JSON tool calls.
+      - role: user
+        content: What is the weather in São Paulo?
+    parameters:
+      temperature: 0
+      max_tokens: 64
+      seed: 42
+      tools:
+        - type: function
+          function:
+            name: get_weather
+            description: Get weather by city
+            parameters:
+              type: object
+              properties:
+                city: {type: string}
+              required: [city]
+    observe: [template, tokens, structured, generation]
+    parity_policy: functional
+    backends: [transformers, vllm, openai]
+
+  - schema_version: "0.1"
+    name: tool-json-object
+    description: Force JSON-like response shape for functional policy
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+    messages:
+      - role: user
+        content: 'Respond with JSON only: {"ok": true, "value": 1}'
+    parameters:
+      temperature: 0
+      max_tokens: 32
+      seed: 7
+      response_format: {type: json_object}
+    observe: [template, tokens, structured, generation]
+    parity_policy: functional

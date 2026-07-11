@@ -1,0 +1,61 @@
+scenarios:
+  - schema_version: "0.1"
+    name: tiny-smollm-basic
+    description: Real run — SmolLM2 135M instruct
+    model:
+      id: HuggingFaceTB/SmolLM2-135M-Instruct
+      revision: main
+      trust_remote_code: false
+      dtype: float32
+      device_map: none
+      tokenizer_only: false
+    messages:
+      - role: system
+        content: You are a helpful assistant.
+      - role: user
+        content: Say hello in one short sentence.
+    parameters:
+      temperature: 0
+      max_tokens: 24
+      seed: 42
+    generation:
+      add_generation_prompt: true
+    observe: [artifact, template, special_tokens, tokens, logits, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: tiny-qwen-basic
+    description: Real run — Qwen2.5 0.5B instruct
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+      revision: main
+      trust_remote_code: false
+      dtype: float32
+      device_map: none
+      tokenizer_only: false
+    messages:
+      - role: system
+        content: You are a helpful assistant.
+      - role: user
+        content: Say hello in one short sentence.
+    parameters:
+      temperature: 0
+      max_tokens: 24
+      seed: 42
+    generation:
+      add_generation_prompt: true
+    observe: [artifact, template, special_tokens, tokens, logits, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: tiny-template-tokens-only
+    description: Cheap real parity path (tokenizer layers only)
+    model:
+      id: HuggingFaceTB/SmolLM2-135M-Instruct
+      tokenizer_only: true
+    messages:
+      - role: user
+        content: "café 😀 recursion"
+    parameters: {temperature: 0, max_tokens: 1, seed: 1}
+    observe: [artifact, template, special_tokens, tokens]
+    parity_policy: strict

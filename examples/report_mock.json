@@ -1,0 +1,1148 @@
+{
+  "schema_version": "1",
+  "run_type": "compare",
+  "run_id": "demo-mock-ui-2026-07-10",
+  "baseline_backend": "transformers",
+  "scenario": {
+    "schema_version": "0.1",
+    "name": "qwen-basic-multiturn",
+    "description": "Basic deterministic Qwen parity test (MOCK UI DEMO)",
+    "model": {
+      "id": "Qwen/Qwen2.5-7B-Instruct",
+      "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+      "trust_remote_code": false,
+      "dtype": "auto",
+      "device_map": "auto"
+    },
+    "parameters": {
+      "temperature": 0,
+      "top_p": 1.0,
+      "max_tokens": 64,
+      "seed": 42
+    },
+    "observe": [
+      "artifact",
+      "template",
+      "special_tokens",
+      "tokens",
+      "logits",
+      "generation",
+      "api"
+    ],
+    "parity_profile": "strict",
+    "tolerance": 0.0,
+    "backends": [
+      "transformers",
+      "vllm",
+      "llamacpp"
+    ]
+  },
+  "environment": {
+    "python_version": "3.11.9",
+    "platform": "Linux-6.8.0-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "packages": {
+      "transformers": "4.46.0",
+      "torch": "2.4.1",
+      "vllm": "0.6.3",
+      "eleanity": "0.4.0"
+    },
+    "cuda_available": true,
+    "cuda_version": "12.4",
+    "gpu_name": "NVIDIA H100 80GB",
+    "torch_version": "2.4.1"
+  },
+  "traces": [
+    {
+      "trace_version": "0",
+      "trace_id": "bf63d625-06aa-4470-9382-686641bacead",
+      "scenario_name": "qwen-basic-multiturn",
+      "backend": "transformers",
+      "baseline_backend": "transformers",
+      "artifact_fingerprint": {
+        "model_ref": "Qwen/Qwen2.5-7B-Instruct",
+        "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+        "commit_sha": "a09a35458c702b33eeacc393d103063234e8bc28",
+        "model_hash": "0a81234bc67890d1234567890abcdef1234567890abcdef1234567890abcdef",
+        "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
+        "tokenizer_hash": "49bc1234d567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        "chat_template_hash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+        "model_type": "qwen2",
+        "architecture": "Qwen2ForCausalLM",
+        "quantization": null,
+        "dtype": "bfloat16",
+        "gguf_metadata": {},
+        "lora_adapters": [],
+        "special_tokens": {
+          "bos_token_id": 151643,
+          "eos_token_id": 151645,
+          "pad_token_id": 151643
+        },
+        "runtime_version": "4.46.0",
+        "python_version": "3.11.9",
+        "os": "Linux-6.8.0-x86_64",
+        "cpu_arch": "x86_64",
+        "gpu": "NVIDIA H100 80GB",
+        "cuda_or_rocm": "12.4",
+        "backend_flags": {
+          "runtime": "transformers",
+          "trust_remote_code": false,
+          "device_map": "auto"
+        }
+      },
+      "environment": {
+        "python_version": "3.11.9",
+        "platform": "Linux-6.8.0-x86_64-with-glibc2.39",
+        "machine": "x86_64",
+        "packages": {
+          "transformers": "4.46.0",
+          "torch": "2.4.1",
+          "vllm": "0.6.3",
+          "eleanity": "0.4.0"
+        },
+        "cuda_available": true,
+        "cuda_version": "12.4",
+        "gpu_name": "NVIDIA H100 80GB",
+        "torch_version": "2.4.1"
+      },
+      "layers": {
+        "artifact": {
+          "state": "OBSERVED",
+          "data": {
+            "model_ref": "Qwen/Qwen2.5-7B-Instruct",
+            "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+            "commit_sha": "a09a35458c702b33eeacc393d103063234e8bc28",
+            "model_hash": "0a81234bc67890d1234567890abcdef1234567890abcdef1234567890abcdef",
+            "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
+            "tokenizer_hash": "49bc1234d567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "chat_template_hash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+            "model_type": "qwen2",
+            "architecture": "Qwen2ForCausalLM",
+            "quantization": null,
+            "dtype": "bfloat16",
+            "gguf_metadata": {},
+            "lora_adapters": [],
+            "special_tokens": {
+              "bos_token_id": 151643,
+              "eos_token_id": 151645,
+              "pad_token_id": 151643
+            },
+            "runtime_version": "4.46.0",
+            "python_version": "3.11.9",
+            "os": "Linux-6.8.0-x86_64",
+            "cpu_arch": "x86_64",
+            "gpu": "NVIDIA H100 80GB",
+            "cuda_or_rocm": "12.4",
+            "backend_flags": {
+              "runtime": "transformers",
+              "trust_remote_code": false,
+              "device_map": "auto"
+            }
+          },
+          "note": null
+        },
+        "template": {
+          "state": "OBSERVED",
+          "data": {
+            "text": "<|im_start|>system\nYou are helpful.<|im_end|>\n<|im_start|>user\nExplique recursão em uma frase.<|im_end|>\n<|im_start|>assistant\n",
+            "rendered_text": "<|im_start|>system\nYou are helpful.<|im_end|>\n<|im_start|>user\nExplique recursão em uma frase.<|im_end|>\n<|im_start|>assistant\n",
+            "rendered_byte_length": 128,
+            "rendered_char_length": 127,
+            "add_generation_prompt": true,
+            "chat_template_hash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+            "template_hash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+            "roles": [
+              "system",
+              "user"
+            ],
+            "special_markers": [
+              "<|im_start|>",
+              "<|im_end|>"
+            ]
+          },
+          "note": null
+        },
+        "special_tokens": {
+          "state": "OBSERVED",
+          "data": {
+            "bos_token_id": 151643,
+            "eos_token_id": 151645,
+            "pad_token_id": 151643,
+            "unk_token_id": null,
+            "vocab_size": 152064,
+            "additional_special_tokens": [
+              "<|im_start|>",
+              "<|im_end|>"
+            ]
+          },
+          "note": null
+        },
+        "tokens": {
+          "state": "OBSERVED",
+          "data": {
+            "ids": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81,
+              82,
+              83,
+              84,
+              85,
+              86,
+              87,
+              88,
+              89
+            ],
+            "token_ids": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81,
+              82,
+              83,
+              84,
+              85,
+              86,
+              87,
+              88,
+              89
+            ],
+            "count": 50,
+            "special_token_count": 6,
+            "special_token_positions": [
+              0,
+              8,
+              9,
+              22,
+              23,
+              49
+            ]
+          },
+          "note": null
+        },
+        "logits": {
+          "state": "OBSERVED",
+          "data": {
+            "top_ids": [
+              785,
+              220,
+              151643,
+              8948,
+              872,
+              198,
+              2610,
+              525,
+              10950,
+              13
+            ],
+            "top_logits": [
+              12.41,
+              9.02,
+              7.88,
+              6.11,
+              5.4,
+              4.91,
+              3.22,
+              2.1,
+              1.05,
+              0.44
+            ],
+            "device": "cuda:0"
+          },
+          "note": null
+        },
+        "generation": {
+          "state": "OBSERVED",
+          "data": {
+            "text": "Recursão é quando uma função se chama a si mesma com um caso base.",
+            "ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "stop_reason": "eos",
+            "seed": 42,
+            "completion_token_count": 12
+          },
+          "note": null
+        },
+        "structured": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "not requested in this scenario"
+        },
+        "streaming": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "not requested"
+        },
+        "api": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "local transformers"
+        }
+      },
+      "warnings": [],
+      "errors": [],
+      "created_at": "2026-07-10T22:30:47.932978+00:00",
+      "duration_ms": 1842.5
+    },
+    {
+      "trace_version": "0",
+      "trace_id": "620f91a9-5662-4dc5-bd0f-757047cb7d65",
+      "scenario_name": "qwen-basic-multiturn",
+      "backend": "vllm",
+      "baseline_backend": "transformers",
+      "artifact_fingerprint": {
+        "model_ref": "Qwen/Qwen2.5-7B-Instruct",
+        "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+        "commit_sha": "a09a35458c702b33eeacc393d103063234e8bc28",
+        "model_hash": "0a81234bc67890d1234567890abcdef1234567890abcdef1234567890abcdef",
+        "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
+        "tokenizer_hash": "49bc1234d567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        "chat_template_hash": "aa11bb22cc33dd44ee55ff6677889900aabbccddeeff001122334455667788",
+        "model_type": "qwen2",
+        "architecture": "Qwen2ForCausalLM",
+        "quantization": null,
+        "dtype": "bfloat16",
+        "gguf_metadata": {},
+        "lora_adapters": [],
+        "special_tokens": {
+          "bos_token_id": 151643,
+          "eos_token_id": 151645,
+          "pad_token_id": 151643
+        },
+        "runtime_version": "0.6.3",
+        "python_version": "3.11.9",
+        "os": "Linux-6.8.0-x86_64",
+        "cpu_arch": "x86_64",
+        "gpu": "NVIDIA H100 80GB",
+        "cuda_or_rocm": "12.4",
+        "backend_flags": {
+          "runtime": "vllm",
+          "trust_remote_code": false,
+          "device_map": "auto"
+        }
+      },
+      "environment": {
+        "python_version": "3.11.9",
+        "platform": "Linux-6.8.0-x86_64-with-glibc2.39",
+        "machine": "x86_64",
+        "packages": {
+          "transformers": "4.46.0",
+          "torch": "2.4.1",
+          "vllm": "0.6.3",
+          "eleanity": "0.4.0"
+        },
+        "cuda_available": true,
+        "cuda_version": "12.4",
+        "gpu_name": "NVIDIA H100 80GB",
+        "torch_version": "2.4.1"
+      },
+      "layers": {
+        "artifact": {
+          "state": "OBSERVED",
+          "data": {
+            "model_ref": "Qwen/Qwen2.5-7B-Instruct",
+            "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+            "commit_sha": "a09a35458c702b33eeacc393d103063234e8bc28",
+            "model_hash": "0a81234bc67890d1234567890abcdef1234567890abcdef1234567890abcdef",
+            "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
+            "tokenizer_hash": "49bc1234d567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "chat_template_hash": "aa11bb22cc33dd44ee55ff6677889900aabbccddeeff001122334455667788",
+            "model_type": "qwen2",
+            "architecture": "Qwen2ForCausalLM",
+            "quantization": null,
+            "dtype": "bfloat16",
+            "gguf_metadata": {},
+            "lora_adapters": [],
+            "special_tokens": {
+              "bos_token_id": 151643,
+              "eos_token_id": 151645,
+              "pad_token_id": 151643
+            },
+            "runtime_version": "0.6.3",
+            "python_version": "3.11.9",
+            "os": "Linux-6.8.0-x86_64",
+            "cpu_arch": "x86_64",
+            "gpu": "NVIDIA H100 80GB",
+            "cuda_or_rocm": "12.4",
+            "backend_flags": {
+              "runtime": "vllm",
+              "trust_remote_code": false,
+              "device_map": "auto"
+            }
+          },
+          "note": null
+        },
+        "template": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "vLLM does not expose apply_chat_template text through this adapter"
+        },
+        "special_tokens": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "not exposed by OpenAI-compatible surface"
+        },
+        "tokens": {
+          "state": "OBSERVED",
+          "data": {
+            "ids": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81,
+              82,
+              83,
+              84,
+              85,
+              86,
+              87
+            ],
+            "token_ids": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81,
+              82,
+              83,
+              84,
+              85,
+              86,
+              87
+            ],
+            "count": 48,
+            "source": "vllm/tokenize"
+          },
+          "note": null
+        },
+        "logits": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "vLLM logits not exposed"
+        },
+        "generation": {
+          "state": "OBSERVED",
+          "data": {
+            "text": "Recursão é uma técnica em que a função se invoca até atingir o caso base.",
+            "ids": [],
+            "stop_reason": "stop",
+            "finish_reason": "stop",
+            "usage": {
+              "prompt_tokens": 48,
+              "completion_tokens": 18,
+              "total_tokens": 66
+            },
+            "http_status": 200,
+            "latency_ms": 92.4
+          },
+          "note": null
+        },
+        "structured": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "not requested"
+        },
+        "streaming": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "not requested"
+        },
+        "api": {
+          "state": "OBSERVED",
+          "data": {
+            "health_ok": true,
+            "http_status": 200,
+            "has_usage": true,
+            "finish_reason": "stop",
+            "openai_shape": true,
+            "latency_ms": 92.4
+          },
+          "note": null
+        }
+      },
+      "warnings": [
+        "vllm: template NOT_OBSERVABLE — chat template string not exposed"
+      ],
+      "errors": [],
+      "created_at": "2026-07-10T22:30:47.932978+00:00",
+      "duration_ms": 318.2
+    },
+    {
+      "trace_version": "0",
+      "trace_id": "854dc45b-5033-4574-b499-c4a274cdec95",
+      "scenario_name": "qwen-basic-multiturn",
+      "backend": "llamacpp",
+      "baseline_backend": "transformers",
+      "artifact_fingerprint": {
+        "model_ref": "Qwen/Qwen2.5-7B-Instruct",
+        "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+        "commit_sha": "a09a35458c702b33eeacc393d103063234e8bc28",
+        "model_hash": "0a81234bc67890d1234567890abcdef1234567890abcdef1234567890abcdef",
+        "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
+        "tokenizer_hash": "49bc1234d567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        "chat_template_hash": "aa11bb22cc33dd44ee55ff6677889900aabbccddeeff001122334455667788",
+        "model_type": "qwen2",
+        "architecture": "Qwen2ForCausalLM",
+        "quantization": "GGUF",
+        "dtype": "q4_k_m",
+        "gguf_metadata": {
+          "format": "gguf",
+          "file_type": 15
+        },
+        "lora_adapters": [],
+        "special_tokens": {
+          "bos_token_id": 151643,
+          "eos_token_id": 151645,
+          "pad_token_id": 151643
+        },
+        "runtime_version": "0.6.3",
+        "python_version": "3.11.9",
+        "os": "Linux-6.8.0-x86_64",
+        "cpu_arch": "x86_64",
+        "gpu": "NVIDIA H100 80GB",
+        "cuda_or_rocm": "12.4",
+        "backend_flags": {
+          "runtime": "llamacpp",
+          "trust_remote_code": false,
+          "device_map": "auto"
+        }
+      },
+      "environment": {
+        "python_version": "3.11.9",
+        "platform": "Linux-6.8.0-x86_64-with-glibc2.39",
+        "machine": "x86_64",
+        "packages": {
+          "transformers": "4.46.0",
+          "torch": "2.4.1",
+          "vllm": "0.6.3",
+          "eleanity": "0.4.0"
+        },
+        "cuda_available": true,
+        "cuda_version": "12.4",
+        "gpu_name": "NVIDIA H100 80GB",
+        "torch_version": "2.4.1"
+      },
+      "layers": {
+        "artifact": {
+          "state": "OBSERVED",
+          "data": {
+            "model_ref": "Qwen/Qwen2.5-7B-Instruct",
+            "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+            "commit_sha": "a09a35458c702b33eeacc393d103063234e8bc28",
+            "model_hash": "0a81234bc67890d1234567890abcdef1234567890abcdef1234567890abcdef",
+            "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
+            "tokenizer_hash": "49bc1234d567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "chat_template_hash": "aa11bb22cc33dd44ee55ff6677889900aabbccddeeff001122334455667788",
+            "model_type": "qwen2",
+            "architecture": "Qwen2ForCausalLM",
+            "quantization": "GGUF",
+            "dtype": "q4_k_m",
+            "gguf_metadata": {
+              "format": "gguf",
+              "file_type": 15
+            },
+            "lora_adapters": [],
+            "special_tokens": {
+              "bos_token_id": 151643,
+              "eos_token_id": 151645,
+              "pad_token_id": 151643
+            },
+            "runtime_version": "0.6.3",
+            "python_version": "3.11.9",
+            "os": "Linux-6.8.0-x86_64",
+            "cpu_arch": "x86_64",
+            "gpu": "NVIDIA H100 80GB",
+            "cuda_or_rocm": "12.4",
+            "backend_flags": {
+              "runtime": "llamacpp",
+              "trust_remote_code": false,
+              "device_map": "auto"
+            }
+          },
+          "note": null
+        },
+        "template": {
+          "state": "OBSERVED",
+          "data": {
+            "text": "<|im_start|>system\nYou are helpful.<|im_end|>\n<|im_start|>user\nExplique recursão em uma frase.<|im_end|>\n",
+            "rendered_text": "<|im_start|>system\nYou are helpful.<|im_end|>\n<|im_start|>user\nExplique recursão em uma frase.<|im_end|>\n",
+            "rendered_byte_length": 106,
+            "rendered_char_length": 105,
+            "add_generation_prompt": false,
+            "chat_template_hash": "aa11bb22cc33dd44ee55ff6677889900aabbccddeeff001122334455667788",
+            "template_hash": "aa11bb22cc33dd44ee55ff6677889900aabbccddeeff001122334455667788",
+            "roles": [
+              "system",
+              "user"
+            ],
+            "special_markers": [
+              "<|im_start|>",
+              "<|im_end|>"
+            ]
+          },
+          "note": null
+        },
+        "special_tokens": {
+          "state": "OBSERVED",
+          "data": {
+            "bos_token_id": 151643,
+            "eos_token_id": 151645,
+            "pad_token_id": 151645,
+            "unk_token_id": null,
+            "vocab_size": 152064,
+            "additional_special_tokens": [
+              "<|im_start|>",
+              "<|im_end|>"
+            ]
+          },
+          "note": null
+        },
+        "tokens": {
+          "state": "OBSERVED",
+          "data": {
+            "ids": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81
+            ],
+            "token_ids": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81
+            ],
+            "count": 42,
+            "special_token_count": 4
+          },
+          "note": null
+        },
+        "logits": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "llama.cpp logits not exposed by this adapter"
+        },
+        "generation": {
+          "state": "OBSERVED",
+          "data": {
+            "text": "É chamar a mesma função com um caso de parada.",
+            "ids": [
+              9,
+              8,
+              7,
+              6,
+              5
+            ],
+            "stop_reason": "length",
+            "finish_reason": "length",
+            "usage": {
+              "prompt_tokens": 42,
+              "completion_tokens": 5,
+              "total_tokens": 47
+            }
+          },
+          "note": null
+        },
+        "structured": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "not requested"
+        },
+        "streaming": {
+          "state": "NOT_OBSERVABLE",
+          "data": {},
+          "note": "not requested"
+        },
+        "api": {
+          "state": "OBSERVED",
+          "data": {
+            "health_ok": true,
+            "http_status": 200,
+            "has_usage": true,
+            "finish_reason": "length",
+            "openai_shape": true,
+            "latency_ms": 41.0
+          },
+          "note": null
+        }
+      },
+      "warnings": [
+        "llamacpp: add_generation_prompt likely false — missing assistant turn marker"
+      ],
+      "errors": [],
+      "created_at": "2026-07-10T22:30:47.932978+00:00",
+      "duration_ms": 255.1
+    }
+  ],
+  "comparisons": {
+    "vllm": {
+      "artifact": {
+        "result": "PASS",
+        "details": {}
+      },
+      "template": {
+        "result": "NOT_OBSERVABLE",
+        "details": {
+          "reason": "candidate N/O"
+        }
+      },
+      "special_tokens": {
+        "result": "NOT_OBSERVABLE",
+        "details": {}
+      },
+      "tokens": {
+        "result": "DIVERGENT",
+        "details": {
+          "first_difference": 41,
+          "expected_token_id": 81,
+          "received_token_id": null,
+          "downstream_percent": 18.0,
+          "downstream_different": 2,
+          "equal_prefix": 41,
+          "left_length": 50,
+          "right_length": 48
+        }
+      },
+      "logits": {
+        "result": "NOT_OBSERVABLE",
+        "details": {}
+      },
+      "generation": {
+        "result": "DIVERGENT",
+        "details": {
+          "first_difference": 0,
+          "downstream_percent": 100.0
+        }
+      },
+      "api": {
+        "result": "PASS",
+        "details": {}
+      }
+    },
+    "llamacpp": {
+      "artifact": {
+        "result": "DIVERGENT",
+        "details": {
+          "divergent_keys": [
+            "quantization",
+            "dtype",
+            "chat_template_hash"
+          ]
+        }
+      },
+      "template": {
+        "result": "DIVERGENT",
+        "details": {
+          "first_difference": 88,
+          "first_byte": 88,
+          "first_character": 88,
+          "line": 5,
+          "column": 1,
+          "left_length": 112,
+          "right_length": 92,
+          "missing_assistant_turn": true,
+          "baseline_snippet": "<|im_start|>assistant\\n",
+          "candidate_snippet": ""
+        }
+      },
+      "special_tokens": {
+        "result": "DIVERGENT",
+        "details": {
+          "divergent_keys": [
+            "pad_token_id"
+          ]
+        }
+      },
+      "tokens": {
+        "result": "DIVERGENT",
+        "details": {
+          "first_difference": 41,
+          "expected_token_id": 81,
+          "received_token_id": null,
+          "downstream_percent": 93.8,
+          "downstream_different": 9,
+          "equal_prefix": 41
+        }
+      },
+      "logits": {
+        "result": "NOT_OBSERVABLE",
+        "details": {}
+      },
+      "generation": {
+        "result": "DIVERGENT",
+        "details": {
+          "first_difference": 0,
+          "downstream_percent": 100.0
+        }
+      },
+      "api": {
+        "result": "DIVERGENT",
+        "details": {
+          "issues": [
+            "finish_reason"
+          ]
+        }
+      }
+    }
+  },
+  "consensus": {
+    "pairs": 3,
+    "status": "DIVERGENT",
+    "layers": {
+      "template": {
+        "status": "DIVERGENT",
+        "votes": {
+          "DIVERGENT": 1,
+          "NOT_OBSERVABLE": 1
+        }
+      },
+      "tokens": {
+        "status": "DIVERGENT",
+        "votes": {
+          "DIVERGENT": 2
+        }
+      }
+    }
+  },
+  "diagnosis": {
+    "status": "DIVERGENT",
+    "first_divergence": "template",
+    "first_divergence_detail": {
+      "layer": "template",
+      "location": {
+        "character": 88,
+        "byte": 88,
+        "line": 5,
+        "column": 1,
+        "token_index": 41
+      },
+      "baseline": "<|im_start|>assistant\\n",
+      "candidate": ""
+    },
+    "propagation": {
+      "first_token_difference": 41,
+      "different_tokens_percent": 93.8,
+      "downstream_different": 9
+    },
+    "propagation_percent": 93.8,
+    "probable_causes": [
+      {
+        "code": "MISSING_ASSISTANT_TURN_TOKEN",
+        "confidence": 0.94,
+        "message": "O backend candidato não adicionou o token de início do turno do assistente."
+      },
+      {
+        "code": "ADD_GENERATION_PROMPT_DIVERGENT",
+        "confidence": 0.91,
+        "message": "add_generation_prompt differs: baseline=True candidate=False."
+      },
+      {
+        "code": "QUANTIZED_VS_FULL_PRECISION",
+        "confidence": 0.88,
+        "message": "Quantization differs: baseline=None candidate='GGUF'."
+      }
+    ],
+    "suggested_actions": [
+      "Compare add_generation_prompt between the backends.",
+      "Verify the chat_template stored in tokenizer_config.json.",
+      "Confirm whether GGUF conversion preserved the template.",
+      "Align quantization (or switch parity policy to quantized)."
+    ],
+    "hypothesis": "O backend candidato não adicionou o token de início do turno do assistente.",
+    "next_test": "Compare add_generation_prompt between the backends.",
+    "summary": "A primeira divergência está no template de chat, no caractere 88. Depois dela, 93.8% dos tokens diferem a partir da posição 41. A provável causa é o backend não adicionou o marcador de início do turno do assistente.",
+    "warnings": [
+      "vllm: template NOT_OBSERVABLE — chat template string not exposed",
+      "llamacpp: add_generation_prompt likely false — missing assistant turn marker"
+    ]
+  },
+  "gates": {
+    "passed": false,
+    "summary": "1 gate failure(s): llamacpp/template=DIVERGENT exceeds max_status=PASS",
+    "results": [
+      {
+        "name": "prompt-must-match",
+        "passed": false,
+        "layer": "template",
+        "status": "DIVERGENT",
+        "message": "llamacpp/template=DIVERGENT exceeds max_status=PASS",
+        "backend": "llamacpp"
+      },
+      {
+        "name": "generation-soft",
+        "passed": true,
+        "message": "gate generation-soft passed"
+      }
+    ]
+  },
+  "timings_ms": {
+    "transformers": 1842.5,
+    "vllm": 318.2,
+    "llamacpp": 255.1
+  },
+  "total_duration_ms": 2415.8,
+  "tokenizer_only": false,
+  "reproduction_command": "eleanity compare --model Qwen/Qwen2.5-7B-Instruct --backends transformers,vllm,llamacpp --baseline transformers --html",
+  "capabilities": {
+    "transformers": {
+      "render": true,
+      "tokenize": true,
+      "logits": true,
+      "generation": true,
+      "template": true
+    },
+    "vllm": {
+      "render": false,
+      "tokenize": true,
+      "logits": false,
+      "generation": true,
+      "streaming": true
+    },
+    "llamacpp": {
+      "render": false,
+      "tokenize": true,
+      "logits": false,
+      "generation": true
+    }
+  }
+}

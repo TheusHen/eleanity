@@ -1,0 +1,37 @@
+schema_version: "0.1"
+name: qwen-tokenizer-torture
+description: |
+  Tokenizer torture suite: Portuguese accents, Chinese, Arabic, emoji, ZWJ,
+  combining marks, NFC/NFD, JSON, URLs, Markdown, Python code, escapes,
+  Windows/Unix newlines, tabs, consecutive spaces.
+model:
+  id: Qwen/Qwen2.5-0.5B-Instruct
+  revision: main
+  trust_remote_code: false
+messages:
+  - role: user
+    content: |
+      Português: ação, coração, ç, áéíóú.
+      中文：你好，世界。
+      العربية: مرحبًا بالعالم.
+      Emoji: 😀 👩🏽‍💻 👨‍👩‍👧 ZWJ.
+      Combining: café vs café.
+      NFC: café; NFD: café.
+      JSON: {"url":"https://example.com/a?x=1&y=2","q":"a\"b"}
+      Markdown: **bold** _italic_ `code`
+      ```python
+      def f(x):
+      	return x * 2  # tab + <>&
+      ```
+      Escapes: \n \t \\ \"
+      Newlines unix:
+      line1
+      line2
+      Newlines windows:
+      lineA
+      lineB
+      Spaces: a    b		c
+parameters: {temperature: 0, max_tokens: 8, seed: 42}
+observe: [template, tokens, special_tokens]
+parity_policy: strict
+backends: [transformers, vllm, llamacpp]

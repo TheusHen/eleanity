@@ -1,0 +1,80 @@
+schema_version: "0.1"
+name: system-user
+description: Classic system + user
+messages:
+  - role: system
+    content: You are a careful assistant.
+  - role: user
+    content: Say hi.
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+generation: { add_generation_prompt: true }
+observe: [template, special_tokens, tokens, generation]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: no-system
+description: User only — no system turn
+messages:
+  - role: user
+    content: Hello without system.
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+observe: [template, tokens]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: multi-turn
+description: Multi-turn chat history
+messages:
+  - role: system
+    content: Be brief.
+  - role: user
+    content: 1+1?
+  - role: assistant
+    content: 2
+  - role: user
+    content: Times 3?
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+observe: [template, tokens, generation]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: tool-call-turn
+description: Prior tool call in history
+messages:
+  - role: user
+    content: Weather in SP?
+  - role: assistant
+    content: ""
+  - role: tool
+    content: '{"temp": 28}'
+  - role: user
+    content: Summarize.
+parameters: { temperature: 0, max_tokens: 16, seed: 42 }
+observe: [template, tokens, generation, structured]
+parity_policy: functional
+---
+schema_version: "0.1"
+name: assistant-prefill
+description: Continue final assistant message
+messages:
+  - role: user
+    content: Complete: The capital of France is
+  - role: assistant
+    content: "The capital of France is"
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+generation:
+  add_generation_prompt: false
+  continue_final_message: true
+observe: [template, tokens, generation]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: generation-prompt-on
+description: Explicit generation prompt marker
+messages:
+  - role: user
+    content: Ping
+parameters: { temperature: 0, max_tokens: 4, seed: 42 }
+generation: { add_generation_prompt: true }
+observe: [template, tokens]
+parity_policy: strict

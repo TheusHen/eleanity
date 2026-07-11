@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>eleanity · {{ scenario_name }} · {{ run_short }}</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #000000;
+      --bg-elevated: #0a0a0a;
+      --panel: #111111;
+      --panel-2: #161616;
+      --panel-hover: #1a1a1a;
+      --border: #262626;
+      --border-strong: #333333;
+      --text: #ededed;
+      --text-2: #a1a1a1;
+      --muted: #6b6b6b;
+      --dim: #525252;
+      --link: #fff;
+      --accent: #0070f3;
+      --accent-soft: rgba(0, 112, 243, .12);
+      --ok: #46a758;
+      --ok-soft: rgba(70, 167, 88, .12);
+      --warn: #f5a623;
+      --warn-soft: rgba(245, 166, 35, .12);
+      --bad: #e5484d;
+      --bad-soft: rgba(229, 72, 77, .12);
+      --info: #3b82f6;
+      --info-soft: rgba(59, 130, 246, .12);
+      --neutral: #8f8f8f;
+      --neutral-soft: rgba(143, 143, 143, .12);
+      --violet: #8b5cf6;
+      --violet-soft: rgba(139, 92, 246, .12);
+      --shadow: 0 0 0 1px rgba(255,255,255,.04), 0 12px 40px rgba(0,0,0,.45);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+      --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --ease: cubic-bezier(.2,.8,.2,1);
+    }
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg: #fafafa;
+      --bg-elevated: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f4f4f5;
+      --panel-hover: #f0f0f0;
+      --border: #e4e4e7;
+      --border-strong: #d4d4d8;
+      --text: #09090b;
+      --text-2: #52525b;
+      --muted: #71717a;
+      --dim: #a1a1aa;
+      --link: #09090b;
+      --accent: #0070f3;
+      --accent-soft: rgba(0,112,243,.08);
+      --ok: #16a34a;
+      --ok-soft: rgba(22,163,74,.1);
+      --warn: #ca8a04;
+      --warn-soft: rgba(202,138,4,.1);
+      --bad: #dc2626;
+      --bad-soft: rgba(220,38,38,.1);
+      --info: #2563eb;
+      --info-soft: rgba(37,99,235,.1);
+      --neutral: #71717a;
+      --neutral-soft: rgba(113,113,122,.1);
+      --violet: #7c3aed;
+      --violet-soft: rgba(124,58,237,.1);
+      --shadow: 0 0 0 1px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(0,112,243,.08), transparent 55%),
+        radial-gradient(900px 400px at 90% 0%, rgba(139,92,246,.06), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      font: 14px/1.5 var(--sans);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--text); }
+    button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+    h1,h2,h3,p { margin: 0; }
+    code, .mono { font-family: var(--mono); font-feature-settings: "ss01","ss02","calt"; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+    .skip { position: absolute; left: -9999px; }
+    .skip:focus { left: 12px; top: 12px; z-index: 50; padding: 8px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--border); }
+
+    /* Top nav — Vercel-like */
+    .topnav {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      height: 56px; padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: saturate(140%) blur(14px);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-mark {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, #0070f3, #8b5cf6);
+      color: #fff; font: 700 13px/1 var(--mono); letter-spacing: -.04em;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 20px rgba(0,112,243,.25);
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+    .brand-text strong { font-size: 13px; font-weight: 650; letter-spacing: -.01em; }
+    .brand-text span { color: var(--muted); font-size: 11px; font-family: var(--mono); }
+    .top-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .crumb { color: var(--muted); font-size: 12px; }
+    .crumb strong { color: var(--text-2); font-weight: 550; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 32px; padding: 0 11px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text-2);
+      font-size: 12px; font-weight: 550;
+      transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease);
+    }
+    .btn:hover { background: var(--panel-hover); color: var(--text); border-color: var(--text-2); }
+    .btn-primary {
+      background: #fff; color: #000; border-color: #fff;
+    }
+    html[data-theme="light"] .btn-primary { background: #09090b; color: #fff; border-color: #09090b; }
+    .btn-primary:hover { filter: brightness(.96); }
+    .btn-icon { width: 32px; padding: 0; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      min-height: calc(100vh - 56px);
+    }
+    .sidebar {
+      position: sticky; top: 56px; align-self: start;
+      height: calc(100vh - 56px);
+      overflow: auto;
+      padding: 18px 14px 28px;
+      border-right: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+    }
+    .side-label {
+      margin: 14px 10px 8px;
+      color: var(--dim);
+      font: 600 10px/1 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .side-nav a {
+      display: flex; align-items: center; gap: 10px;
+      min-height: 34px; padding: 6px 10px; margin-bottom: 2px;
+      border-radius: 8px;
+      color: var(--text-2);
+      font-size: 13px; font-weight: 500;
+      transition: background .12s var(--ease), color .12s var(--ease);
+    }
+    .side-nav a:hover { background: var(--panel-2); color: var(--text); }
+    .side-nav a.is-active { background: var(--panel-2); color: var(--text); }
+    .nav-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--dim); flex: 0 0 auto;
+    }
+    .side-run {
+      margin: 4px 6px 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel);
+    }
+    .side-run .k { color: var(--dim); font: 600 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .side-run code { display: block; margin: 8px 0; font-size: 11px; word-break: break-all; color: var(--text-2); }
+    .privacy {
+      margin-top: 18px; padding: 12px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-sm);
+      color: var(--muted); font-size: 11px; line-height: 1.45;
+    }
+
+    .main { min-width: 0; }
+    .content { width: min(1180px, 100%); margin: 0 auto; padding: 28px 24px 72px; }
+
+    .section { margin-bottom: 28px; scroll-margin-top: 80px; }
+    .section-head {
+      display: flex; align-items: end; justify-content: space-between; gap: 16px;
+      margin-bottom: 14px;
+    }
+    .section-kicker {
+      color: var(--muted);
+      font: 600 11px/1 var(--mono);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .section-head h2 {
+      font-size: 18px; font-weight: 600; letter-spacing: -.02em;
+    }
+    .section-head p { color: var(--muted); font-size: 13px; max-width: 560px; margin-top: 4px; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .card-pad { padding: 18px; }
+    .grid-2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .grid-charts { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 12px; }
+
+    .badge {
+      --c: var(--neutral); --bgc: var(--neutral-soft);
+      display: inline-flex; align-items: center; gap: 6px;
+      min-height: 22px; padding: 0 8px;
+      border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
+      border-radius: 999px;
+      background: var(--bgc); color: var(--c);
+      font: 650 10px/1 var(--mono);
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    [data-status="PASS"] { --c: var(--ok); --bgc: var(--ok-soft); }
+    [data-status="PASS_WITH_TOLERANCE"] { --c: var(--warn); --bgc: var(--warn-soft); }
+    [data-status="DIVERGENT"], [data-status="ERROR"] { --c: var(--bad); --bgc: var(--bad-soft); }
+    [data-status="REFERENCE"] { --c: var(--info); --bgc: var(--info-soft); }
+    [data-status="NOT_OBSERVABLE"], [data-status="INCOMPARABLE"] { --c: var(--neutral); --bgc: var(--neutral-soft); }
+    [data-status="OBSERVED"] { --c: var(--violet); --bgc: var(--violet-soft); }
+
+    /* Hero */
+    .hero {
+      position: relative; overflow: hidden;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, #0070f3 8%), var(--panel));
+      box-shadow: var(--shadow);
+    }
+    .hero-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .hero h1 {
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 650;
+      letter-spacing: -.03em;
+      line-height: 1.15;
+      max-width: 920px;
+      margin-bottom: 10px;
+    }
+    .hero-summary {
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 820px;
+      margin-bottom: 16px;
+    }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      min-height: 28px; padding: 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .chip b { color: var(--text); font-weight: 600; font-family: var(--mono); font-size: 11px; }
+
+    .stat {
+      padding: 14px 15px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    .stat .k {
+      color: var(--muted);
+      font: 600 10px/1 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .stat .v {
+      font-size: 22px; font-weight: 650; letter-spacing: -.03em;
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+    .stat .n { margin-top: 6px; color: var(--dim); font-size: 11px; }
+
+    /* Charts */
+    .chart-card { padding: 16px; min-height: 220px; display: flex; flex-direction: column; }
+    .chart-title {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 14px;
+    }
+    .chart-title h3 { font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
+    .chart-title span { color: var(--muted); font: 500 11px/1 var(--mono); }
+    .chart-body { flex: 1; display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 140px; }
+
+    .donut-wrap { position: relative; width: 120px; height: 120px; flex: 0 0 auto; }
+    .donut-wrap svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+    .donut-center {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      text-align: center; pointer-events: none;
+    }
+    .donut-center strong { display: block; font-size: 18px; font-weight: 700; letter-spacing: -.03em; }
+    .donut-center span { color: var(--muted); font-size: 10px; font-family: var(--mono); }
+
+    .legend { display: grid; gap: 8px; min-width: 0; }
+    .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+    .legend-swatch { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+    .legend-row b { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text); font-variant-numeric: tabular-nums; }
+    .sw-ok { background: var(--ok); }
+    .sw-warn { background: var(--warn); }
+    .sw-bad { background: var(--bad); }
+    .sw-neutral { background: var(--neutral); }
+    .sw-muted { background: var(--dim); }
+    .sw-info { background: var(--info); }
+    .sw-violet { background: var(--violet); }
+
+    .hbar { width: 100%; display: grid; gap: 10px; }
+    .hbar-row { display: grid; grid-template-columns: 88px 1fr 52px; gap: 10px; align-items: center; }
+    .hbar-row .name { color: var(--text-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hbar-track {
+      height: 8px; border-radius: 999px; background: var(--panel-2);
+      border: 1px solid var(--border); overflow: hidden;
+    }
+    .hbar-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #0070f3, #8b5cf6);
+      box-shadow: 0 0 12px rgba(0,112,243,.35);
+    }
+    .hbar-fill.warn { background: linear-gradient(90deg, #f5a623, #e5484d); box-shadow: none; }
+    .hbar-fill.ok { background: linear-gradient(90deg, #46a758, #3b82f6); box-shadow: none; }
+    .hbar-val { text-align: right; font: 550 11px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .layer-strip {
+      display: grid;
+      grid-template-columns: repeat({{ layers|length or 1 }}, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+    .layer-cell {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-2);
+      min-width: 0;
+      text-decoration: none;
+      transition: border-color .15s var(--ease), transform .15s var(--ease);
+    }
+    .layer-cell:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+    .layer-cell.is-origin {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bad) 25%, transparent);
+    }
+    .layer-cell .bar {
+      height: 4px; border-radius: 999px; background: var(--border);
+      overflow: hidden;
+    }
+    .layer-cell .bar > i {
+      display: block; height: 100%; border-radius: 999px;
+      background: var(--ok);
+    }
+    .layer-cell[data-status="DIVERGENT"] .bar > i,
+    .layer-cell[data-status="ERROR"] .bar > i { background: var(--bad); }
+    .layer-cell[data-status="PASS_WITH_TOLERANCE"] .bar > i { background: var(--warn); }
+    .layer-cell[data-status="NOT_OBSERVABLE"] .bar > i,
+    .layer-cell[data-status="INCOMPARABLE"] .bar > i { background: var(--neutral); }
+    .layer-cell[data-status="REFERENCE"] .bar > i { background: var(--info); }
+    .layer-cell .ln {
+      font: 600 10px/1.2 var(--mono); color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .layer-cell .lc { color: var(--muted); font: 500 9px/1 var(--mono); }
+
+    .prop-ring { position: relative; width: 108px; height: 108px; }
+    .prop-ring svg { width: 108px; height: 108px; transform: rotate(-90deg); }
+    .prop-center {
+      position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+    }
+    .prop-center strong { font-size: 20px; font-weight: 700; letter-spacing: -.03em; }
+    .prop-center span { color: var(--muted); font-size: 10px; }
+
+    .logit-bars { width: 100%; display: grid; gap: 6px; }
+    .logit-row { display: grid; grid-template-columns: 28px 1fr 64px; gap: 8px; align-items: center; font-size: 11px; }
+    .logit-row .id { color: var(--muted); font-family: var(--mono); }
+    .logit-row .val { text-align: right; font-family: var(--mono); color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .logit-track { height: 7px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); overflow: hidden; }
+    .logit-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8b5cf6, #0070f3); }
+
+    /* Diagnosis */
+    .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; }
+    .diag-grid > div { padding: 18px; }
+    .diag-grid > div + div { border-left: 1px solid var(--border); }
+    .diag-k {
+      color: var(--muted);
+      font: 600 10px/1 var(--mono);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .diag-t { font-size: 14px; line-height: 1.55; color: var(--text); }
+    .note {
+      margin-top: 10px; padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .note.warn {
+      border-color: color-mix(in srgb, var(--warn) 35%, var(--border));
+      background: var(--warn-soft);
+      color: var(--text-2);
+    }
+    .play-item {
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .play-item:first-child { border-top: 0; padding-top: 0; }
+    .play-code { font: 600 12px/1.3 var(--mono); margin-bottom: 4px; }
+    .play-msg { color: var(--text-2); font-size: 12px; margin-bottom: 8px; }
+    .play-item ul { margin: 0; padding-left: 16px; color: var(--muted); font-size: 12px; }
+
+    /* Matrix */
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 12px;
+    }
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--panel-2);
+      color: var(--muted);
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .matrix { min-width: 720px; }
+    .matrix th:first-child, .matrix td:first-child {
+      position: sticky; left: 0; z-index: 1;
+      background: var(--panel); min-width: 170px;
+    }
+    .matrix thead th:first-child { z-index: 2; background: var(--panel-2); }
+    .layer-name { font: 600 12px/1.3 var(--mono); color: var(--text); }
+    .layer-desc { display: block; margin-top: 3px; color: var(--dim); font-size: 11px; font-weight: 400; }
+    .cell-stack { display: grid; gap: 5px; }
+    .cell-meta { color: var(--muted); font: 11px/1.2 var(--mono); }
+
+    .backend-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .backend-card { padding: 14px; }
+    .backend-card h3 { font: 600 13px/1.2 var(--mono); margin-bottom: 4px; }
+    .backend-card .model { color: var(--muted); font: 11px/1.35 var(--mono); word-break: break-all; margin-bottom: 12px; }
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .facts span { display: block; color: var(--dim); font: 600 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+    .facts strong { display: block; margin-top: 4px; font-size: 12px; font-weight: 600; }
+
+    /* Evidence accordion */
+    .layer-stack { display: grid; gap: 8px; }
+    details.layer {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      overflow: clip;
+    }
+    details.layer.origin {
+      border-color: color-mix(in srgb, var(--bad) 40%, var(--border));
+    }
+    details.layer.is-hidden-by-filter { display: none; }
+    summary.layer-sum {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 42px minmax(140px, .42fr) minmax(180px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+    summary.layer-sum::-webkit-details-marker { display: none; }
+    summary.layer-sum:hover { background: var(--panel-2); }
+    .idx {
+      width: 34px; height: 28px;
+      display: grid; place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font: 600 11px/1 var(--mono);
+    }
+    .ltitle { font: 600 13px/1.2 var(--mono); }
+    .ldesc { color: var(--muted); font-size: 12px; }
+    .layer-body { border-top: 1px solid var(--border); padding: 14px 16px 16px; }
+    .cmp-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .cmp-card {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-2);
+    }
+    .cmp-card .head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .cmp-card .title { font: 600 11px/1.2 var(--mono); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ev-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+    }
+    .ev {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      min-width: 0; overflow: hidden;
+    }
+    .ev-h {
+      display: flex; justify-content: space-between; gap: 8px;
+      padding: 11px 12px; border-bottom: 1px solid var(--border);
+    }
+    .ev-h h4 { font: 600 12px/1.2 var(--mono); }
+    .ev-h .role { display: block; color: var(--dim); font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+    .ev-b { padding: 12px; }
+    .ev-sum { color: var(--text-2); font: 11px/1.45 var(--mono); margin-bottom: 10px; word-break: break-word; }
+    .ev-note {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      padding: 10px;
+      font-size: 11px;
+    }
+    .mini {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px;
+    }
+    .mini div {
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    .mini span { display: block; color: var(--dim); font: 600 9px/1 var(--mono); text-transform: uppercase; }
+    .mini strong { display: block; margin-top: 5px; font: 600 12px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+    .protected {
+      border: 1px dashed var(--border-strong);
+      border-radius: 10px;
+      background:
+        repeating-linear-gradient(135deg, transparent 0 8px, rgba(120,120,120,.04) 8px 16px),
+        var(--panel);
+      padding: 10px 12px;
+    }
+    .protected .t { font: 600 11px/1.2 var(--mono); color: var(--text-2); }
+    .protected p { margin: 5px 0 0; color: var(--dim); font-size: 11px; }
+    .digest { display: block; margin-top: 8px; color: var(--dim); font: 10px/1.4 var(--mono); word-break: break-all; }
+    .fp { margin: 0; }
+    .fp-row {
+      display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px;
+      padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px;
+    }
+    .fp-row:last-child { border-bottom: 0; }
+    .fp-row dt { color: var(--dim); font-family: var(--mono); }
+    .fp-row dd { margin: 0; font-family: var(--mono); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .cmd {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      margin-top: 12px; padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #050505;
+      color: #79c0ff;
+      font: 12px/1.4 var(--mono);
+    }
+    html[data-theme="light"] .cmd { background: #18181b; color: #93c5fd; }
+    .cmd code { overflow-x: auto; white-space: nowrap; }
+
+    .footer {
+      display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      margin-top: 28px; padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--dim); font: 11px/1.4 var(--mono);
+    }
+
+    .toast {
+      position: fixed; right: 16px; bottom: 16px; z-index: 50;
+      padding: 10px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      opacity: 0; pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity .18s var(--ease), transform .18s var(--ease);
+    }
+    .toast.on { opacity: 1; transform: none; }
+
+    @media (max-width: 1080px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: relative; top: 0; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+      .side-label, .privacy, .side-run .k { display: none; }
+      .side-nav { display: flex; gap: 4px; overflow-x: auto; }
+      .side-nav a { flex: 0 0 auto; }
+      .grid-2, .grid-3, .grid-4, .grid-charts, .diag-grid { grid-template-columns: 1fr; }
+      .diag-grid > div + div { border-left: 0; border-top: 1px solid var(--border); }
+      .layer-strip { grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .content { padding: 18px 14px 48px; }
+      .hero { padding: 16px; }
+      .top-meta .btn span { display: none; }
+      summary.layer-sum { grid-template-columns: 34px 1fr auto; }
+      .ldesc { display: none; }
+      .stat .v { font-size: 18px; }
+    }
+    @media print {
+      .topnav, .sidebar, .toast, .btn { display: none !important; }
+      .layout { display: block; }
+      body { background: #fff; color: #000; }
+      .card, .hero, details.layer { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body data-report-version="4" data-overall-status="{{ overall.code }}">
+  <a class="skip" href="#main">Skip to report</a>
+
+  <header class="topnav">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">e</div>
+      <div class="brand-text">
+        <strong>eleanity</strong>
+        <span>diag panel · runtime parity</span>
+      </div>
+    </div>
+    <div class="top-meta">
+      <span class="crumb">runs / <strong>{{ scenario_name }}</strong></span>
+      <span class="badge" data-status="{{ overall.code }}">{{ overall.label }}</span>
+      <a class="btn" href="{{ source_filename }}"><span>JSON</span></a>
+      <button class="btn" type="button" data-copy="{{ run_id }}"><span>Copy run</span></button>
+      <button class="btn btn-icon" type="button" id="theme-toggle" title="Theme" aria-label="Toggle theme">◐</button>
+      <button class="btn btn-icon" type="button" id="print-report" title="Print" aria-label="Print">↗</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" aria-label="Navigation">
+      <div class="side-run">
+        <div class="k">run_id</div>
+        <code title="{{ run_id }}">{{ run_id }}</code>
+        <span class="badge" data-status="{{ overall.code }}">{{ overall.code }}</span>
+      </div>
+      <nav class="side-nav">
+        <div class="side-label">Report</div>
+        <a href="#overview"><i class="nav-dot"></i>Overview</a>
+        <a href="#charts"><i class="nav-dot"></i>Analytics</a>
+        <a href="#diagnosis"><i class="nav-dot"></i>Diagnosis</a>
+        <a href="#pipeline"><i class="nav-dot"></i>Causal pipeline</a>
+        <a href="#matrix"><i class="nav-dot"></i>Parity matrix</a>
+        <a href="#evidence"><i class="nav-dot"></i>Evidence</a>
+        <a href="#environment"><i class="nav-dot"></i>Environment fingerprint</a>
+        <a href="#reproducibility"><i class="nav-dot"></i>Reproduce</a>
+        <div class="side-label">Layers</div>
+        {% for layer in layers %}
+        <a href="#{{ layer.id }}"><i class="nav-dot" style="{% if layer.is_first_divergence %}background:var(--bad){% endif %}"></i>{{ layer.short_label }}</a>
+        {% endfor %}
+      </nav>
+      <div class="privacy">
+        Share-safe HTML. Prompts, generations and token ID sequences are omitted.
+        Full evidence: <code class="mono">{{ source_filename }}</code>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+      <div class="content">
+
+        <section class="section" id="overview">
+          <div class="hero">
+            <div class="hero-top">
+              <span class="badge" data-status="{{ overall.code }}">{{ overall.code }}</span>
+              <span class="chip">mode <b>{{ report_mode }}</b></span>
+              <span class="chip">schema <b>{{ source_schema_version }}</b></span>
+              {% if tokenizer_only %}<span class="chip"><b>tokenizer_only</b></span>{% endif %}
+            </div>
+            <div class="section-kicker" style="margin-bottom:8px">01 · Executive summary</div>
+            <h1>{{ overall.title }}</h1>
+            <p class="hero-summary">{{ overall.summary }}</p>
+            <div class="chip-row">
+              <span class="chip">scenario <b>{{ scenario_name }}</b></span>
+              <span class="chip">model <b>{{ model_label }}</b></span>
+              <span class="chip">baseline <b>{{ baseline_backend }}</b></span>
+              <span class="chip">ts <b>{{ created_at }}</b></span>
+              {% if total_duration_ms is not none %}<span class="chip">total <b>{{ total_duration_ms }} ms</b></span>{% endif %}
+            </div>
+          </div>
+
+          <div class="grid-4" style="margin-top:12px">
+            <div class="stat">
+              <div class="k">first_divergence</div>
+              <div class="v">{{ diagnosis.first_divergence_label }}</div>
+              <div class="n">primeira camada causal divergente</div>
+            </div>
+            <div class="stat">
+              <div class="k">propagation</div>
+              <div class="v">{% if diagnosis.propagation_available %}{{ diagnosis.propagation_display }}{% else %}n/a{% endif %}</div>
+              <div class="n">token impact after first divergence</div>
+            </div>
+            <div class="stat">
+              <div class="k">coverage</div>
+              <div class="v">{{ metrics.coverage_percent }}%</div>
+              <div class="n">{{ metrics.comparable_count }}/{{ metrics.total_comparisons }} pares comparáveis</div>
+            </div>
+            <div class="stat">
+              <div class="k">observability</div>
+              <div class="v">{{ metrics.observability_percent }}%</div>
+              <div class="n">{{ metrics.observed_count }}/{{ metrics.total_observations }} observações</div>
+            </div>
+          </div>
+          {% if integrity_notice %}
+          <div class="note warn" style="margin-top:12px">! {{ integrity_notice }}</div>
+          {% endif %}
+        </section>
+
+        <section class="section" id="charts">
+          <div class="section-head">
+            <div>
+              <div class="section-kicker">Analytics</div>
+              <h2>Signal overview</h2>
+              <p>Status mix, latency, causal layer health and cause confidence — pure SVG, offline.</p>
+            </div>
+          </div>
+
+          <div class="grid-charts">
+            <article class="card chart-card">
+              <div class="chart-title">
+                <h3>Comparison outcomes</h3>
+                <span>n={{ charts.status_total }}</span>
+              </div>
+              <div class="chart-body">
+                <div class="donut-wrap" aria-hidden="true">
+                  <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="10"/>
+                    {% for item in charts.donut_segments %}
+                    <circle cx="50" cy="50" r="40" fill="none" stroke-width="10"
+                      stroke="{% if item.color=='ok' %}var(--ok){% elif item.color=='warn' %}var(--warn){% elif item.color=='bad' %}var(--bad){% elif item.color=='muted' %}var(--dim){% else %}var(--neutral){% endif %}"
+                      stroke-dasharray="{{ item.dash }} {{ item.gap }}"
+                      stroke-dashoffset="{{ item.offset }}"
+                      stroke-linecap="butt"/>
+                    {% endfor %}
+                  </svg>
+                  <div class="donut-center">
+                    <div>
+                      <strong>{{ metrics.divergent_count }}</strong>
+                      <span>DIV</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="legend">
+                  {% for item in charts.status_series %}
+                  <div class="legend-row">
+                    <i class="legend-swatch sw-{{ item.color }}"></i>
+                    <span>{{ item.label }}</span>
+                    <b>{{ item.value }} · {{ item.percent }}%</b>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </article>
+
+            <article class="card chart-card">
+              <div class="chart-title">
+                <h3>Backend latency</h3>
+                <span>ms</span>
+              </div>
+              <div class="chart-body" style="align-items:stretch">
+                <div class="hbar">
+                  {% for item in charts.timing_series %}
+                  <div class="hbar-row">
+                    <div class="name" title="{{ item.label }}">{{ item.label }}</div>
+                    <div class="hbar-track"><div class="hbar-fill" style="width:{{ item.percent }}%"></div></div>
+                    <div class="hbar-val">{{ item.value }}</div>
+                  </div>
+                  {% else %}
+                  <div class="ev-note">No timing data in this run.</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </article>
+
+            <article class="card chart-card">
+              <div class="chart-title">
+                <h3>Propagation</h3>
+                <span>downstream</span>
+              </div>
+              <div class="chart-body">
+                <div class="prop-ring" aria-label="Propagation {{ charts.propagation }} percent">
+                  <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="10"/>
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--bad)" stroke-width="10"
+                      stroke-linecap="round"
+                      stroke-dasharray="{{ charts.propagation_dash }} 251.327"
+                      stroke-dashoffset="0"/>
+                  </svg>
+                  <div class="prop-center">
+                    <div>
+                      <strong>{{ charts.propagation }}%</strong>
+                      <span>tokens</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="legend">
+                  <div class="legend-row"><i class="legend-swatch sw-bad"></i><span>divergent tail</span><b>{{ charts.propagation }}%</b></div>
+                  <div class="legend-row"><i class="legend-swatch sw-ok"></i><span>shared prefix</span><b>{{ charts.propagation_remaining }}%</b></div>
+                  <div class="legend-row"><span style="color:var(--muted);font-size:11px">Useful for template/token origin layers</span></div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="grid-2" style="margin-top:12px">
+            <article class="card chart-card">
+              <div class="chart-title">
+                <h3>Causal layer health</h3>
+                <span>pipeline</span>
+              </div>
+              <div class="layer-strip" style="align-self:stretch">
+                {% for item in charts.layer_series %}
+                <a class="layer-cell {% if item.is_origin %}is-origin{% endif %}" href="#{{ item.id }}" data-status="{{ item.code }}">
+                  <div class="bar"><i style="width:{{ (item.score * 100)|round(0) }}%"></i></div>
+                  <div class="ln">{{ item.label }}</div>
+                  <div class="lc">{{ item.code }}</div>
+                </a>
+                {% endfor %}
+              </div>
+            </article>
+
+            <article class="card chart-card">
+              <div class="chart-title">
+                <h3>{% if charts.logits_series %}Top logits{% else %}Cause confidence{% endif %}</h3>
+                <span>{% if charts.logits_series %}baseline slice{% else %}probable causes{% endif %}</span>
+              </div>
+              {% if charts.logits_series %}
+              <div class="logit-bars">
+                {% for row in charts.logits_series %}
+                <div class="logit-row">
+                  <div class="id">#{{ row.rank }}</div>
+                  <div class="logit-track"><div class="logit-fill" style="width:{{ row.percent }}%"></div></div>
+                  <div class="val">{{ row.logit }}</div>
+                </div>
+                {% endfor %}
+              </div>
+              {% elif charts.cause_series %}
+              <div class="hbar">
+                {% for item in charts.cause_series %}
+                <div class="hbar-row" style="grid-template-columns: minmax(0,1.2fr) 1fr 42px">
+                  <div class="name" title="{{ item.code }}">{{ item.code }}</div>
+                  <div class="hbar-track"><div class="hbar-fill warn" style="width:{{ item.percent }}%"></div></div>
+                  <div class="hbar-val">{{ item.percent }}%</div>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="ev-note">No logits or cause confidences in this run.</div>
+              {% endif %}
+            </article>
+          </div>
+
+          {% if charts.backend_health %}
+          <div class="card chart-card" style="margin-top:12px">
+            <div class="chart-title">
+              <h3>Observability by backend</h3>
+              <span>observed / total layers</span>
+            </div>
+            <div class="hbar">
+              {% for item in charts.backend_health %}
+              <div class="hbar-row" style="grid-template-columns: 120px 1fr 90px">
+                <div class="name">{{ item.label }}</div>
+                <div class="hbar-track"><div class="hbar-fill ok" style="width:{{ item.percent }}%"></div></div>
+                <div class="hbar-val">{{ item.observed }}/{{ item.total }} · {{ item.percent }}%</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </section>
+
+        <section class="section" id="diagnosis">
+          <div class="section-head">
+            <div>
+              <div class="section-kicker">02 · Diagnosis</div>
+              <h2>First divergence & next move</h2>
+              <p>Rule-based causal stop — not an LLM judge.</p>
+            </div>
+          </div>
+          <div class="card diag-grid">
+            <div>
+              <div class="diag-k">hypothesis / probable cause</div>
+              <div class="diag-t">{{ diagnosis.hypothesis }}</div>
+              {% if diagnosis.probable_causes %}
+              <div class="chips" style="margin-top:12px">
+                {% for cause in diagnosis.probable_causes %}
+                <span class="chip">{{ cause.code }} <b>{{ cause.confidence if cause.confidence is not none else '—' }}</b></span>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% if playbook %}
+              <div style="margin-top:14px">
+                <div class="diag-k">playbook · next actions</div>
+                {% for entry in playbook %}
+                <div class="play-item">
+                  <div class="play-code">{{ entry.code }} · {{ entry.title }}</div>
+                  <div class="play-msg">{{ entry.message }}</div>
+                  {% if entry.actions %}
+                  <ul>{% for action in entry.actions %}<li>{{ action }}</li>{% endfor %}</ul>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            <div>
+              <div class="diag-k">suggested actions</div>
+              {% if diagnosis.suggested_actions %}
+              <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.55">
+                {% for action in diagnosis.suggested_actions %}
+                <li>{{ action }}</li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <div class="diag-t">{{ diagnosis.next_test }}</div>
+              {% endif %}
+              {% if diagnosis.first_divergence_detail %}
+              <div class="note" style="margin-top:12px">
+                location
+                {% if diagnosis.first_divergence_detail.location %}
+                · char={{ diagnosis.first_divergence_detail.location.character }}
+                · byte={{ diagnosis.first_divergence_detail.location.byte }}
+                · line={{ diagnosis.first_divergence_detail.location.line }}
+                {% endif %}
+                {% if diagnosis.first_divergence_detail.baseline is not none %}<br>baseline <code class="mono">{{ diagnosis.first_divergence_detail.baseline }}</code>{% endif %}
+                {% if diagnosis.first_divergence_detail.candidate is not none %}<br>candidate <code class="mono">{{ diagnosis.first_divergence_detail.candidate }}</code>{% endif %}
+              </div>
+              {% endif %}
+              {% if gates %}
+              <div class="note" style="margin-top:8px">
+                gates: <strong>{{ gates.passed }}</strong> — {{ gates.summary }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% if diagnosis.warnings %}
+          <div class="note warn">warnings: {% for w in diagnosis.warnings %}{{ w }}{% if not loop.last %}; {% endif %}{% endfor %}</div>
+          {% endif %}
+          <div class="note">i {{ diagnosis.scope_note }} Baseline is pairwise reference, not absolute truth.</div>
+        </section>
+
+        <section class="section" id="pipeline">
+          <div class="section-head">
+            <div>
+              <div class="section-kicker">03 · Causal pipeline</div>
+              <h2>Where agreement stopped</h2>
+              <p>artifact → template → special → tokens → logits → generation → …</p>
+            </div>
+          </div>
+          <div class="layer-strip">
+            {% for layer in layers %}
+            <a class="layer-cell {% if layer.is_first_divergence %}is-origin{% endif %}" href="#{{ layer.id }}" data-status="{{ layer.result.code }}">
+              <div class="bar"><i style="width:{% if layer.result.code == 'PASS' or layer.result.code == 'REFERENCE' %}100{% elif layer.result.code == 'PASS_WITH_TOLERANCE' %}70{% elif layer.result.code == 'DIVERGENT' or layer.result.code == 'ERROR' %}8{% else %}35{% endif %}%"></i></div>
+              <div class="ln">{{ layer.number }} {{ layer.short_label }}</div>
+              <div class="lc">{{ layer.phase }}{% if layer.is_first_divergence %} · ORIGIN{% endif %}</div>
+            </a>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="section" id="matrix">
+          <div class="section-head">
+            <div>
+              <div class="section-kicker">04 · Parity matrix</div>
+              <h2>Observation vs parity</h2>
+              <p>N/O never becomes PASS.
+              {% if consensus %} · consensus=<code class="mono">{{ consensus.status or '—' }}</code> · pairs={{ consensus.pairs or 0 }}{% endif %}</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="matrix">
+              <caption>Results by layer and backend</caption>
+              <thead>
+                <tr>
+                  <th>layer</th>
+                  {% for backend in backends %}
+                  <th>{{ backend.label }}{% if backend.is_baseline %} <span class="badge" data-status="REFERENCE">REF</span>{% endif %}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for layer in layers %}
+                <tr>
+                  <td>
+                    <a class="layer-name" href="#{{ layer.id }}">{{ layer.label }}</a>
+                    <span class="layer-desc">{{ layer.description }}</span>
+                  </td>
+                  {% for backend in layer.backends %}
+                  <td>
+                    <div class="cell-stack">
+                      <span class="badge" data-status="{{ backend.comparison.code }}">{{ backend.comparison.short_label }}</span>
+                      <span class="cell-meta">{{ backend.observation.state_label }}</span>
+                    </div>
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="backend-cards">
+            {% for backend in backends %}
+            <article class="card backend-card">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
+                <h3>{{ backend.label }}</h3>
+                <span class="badge" data-status="{{ backend.summary_code }}">{{ backend.summary_code }}</span>
+              </div>
+              <div class="model">{{ backend.model_ref }}</div>
+              <div class="facts">
+                <div><span>status</span><strong>{{ backend.summary_label }}</strong></div>
+                <div><span>coverage</span><strong>{{ backend.comparison_coverage }}</strong></div>
+                <div><span>first_diff</span><strong>{{ backend.first_divergence }}</strong></div>
+                <div><span>observed</span><strong>{{ backend.observed }}/{{ backend.total_layers }}</strong></div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="section" id="evidence">
+          <div class="section-head">
+            <div>
+              <div class="section-kicker">05 · Evidence</div>
+              <h2>Layer detail</h2>
+              <p>Counts, hashes, notes. Sensitive content redacted in HTML.</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" type="button" id="focus-problems" aria-pressed="false">Focus issues</button>
+              <button class="btn" type="button" id="expand-layers" aria-pressed="false">Expand all</button>
+            </div>
+          </div>
+
+          <div class="layer-stack">
+            {% for layer in layers %}
+            <details class="layer {% if layer.is_first_divergence %}origin{% endif %}" id="{{ layer.id }}" data-status="{{ layer.result.code }}" {% if layer.is_first_divergence %}open{% endif %}>
+              <summary class="layer-sum">
+                <span class="idx">{{ layer.number }}</span>
+                <div>
+                  <div class="ltitle">{{ layer.label }}</div>
+                  {% if layer.is_first_divergence %}<div class="cell-meta" style="color:var(--bad);margin-top:3px">ORIGIN · first_divergence</div>{% endif %}
+                </div>
+                <div class="ldesc">{{ layer.description }}</div>
+                <span class="badge" data-status="{{ layer.result.code }}">{{ layer.result.short_label }}</span>
+              </summary>
+              <div class="layer-body">
+                {% if layer.candidate_comparisons %}
+                <div class="cmp-row">
+                  {% for comparison in layer.candidate_comparisons %}
+                  <div class="cmp-card">
+                    <div class="head">
+                      <span class="title">{{ baseline_backend }} × {{ comparison.backend }}</span>
+                      <span class="badge" data-status="{{ comparison.code }}">{{ comparison.short_label }}</span>
+                    </div>
+                    {% if comparison.details %}
+                    <div class="chips">
+                      {% for detail in comparison.details %}
+                      <span class="chip">{{ detail.label }}= <b>{{ detail.value }}</b></span>
+                      {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="ev-note">no comparison details</div>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="ev-grid">
+                  {% for backend in layer.backends %}
+                  <article class="ev">
+                    <header class="ev-h">
+                      <div>
+                        <h4>{{ backend.label }}</h4>
+                        <span class="role">{% if backend.is_baseline %}baseline{% else %}candidate{% endif %}</span>
+                      </div>
+                      <span class="badge" data-status="{{ backend.observation.state }}">{{ backend.observation.state_label }}</span>
+                    </header>
+                    <div class="ev-b">
+                      <div class="ev-sum">{{ backend.observation.summary }}</div>
+                      {% if backend.observation.state != 'OBSERVED' %}
+                        <div class="ev-note">{{ backend.observation.note or 'no evidence' }}</div>
+                      {% elif backend.observation.view.kind == 'artifact' %}
+                        <dl class="fp">
+                          {% for field in backend.observation.view.fields %}
+                          <div class="fp-row"><dt>{{ field.label }}</dt><dd title="{{ field.value }}">{{ field.compact }}</dd></div>
+                          {% endfor %}
+                        </dl>
+                      {% elif backend.observation.view.kind == 'special_tokens' %}
+                        <dl class="fp">
+                          {% for field in backend.observation.view.fields %}
+                          <div class="fp-row"><dt>{{ field.label }}</dt><dd title="{{ field.value }}">{{ field.compact }}</dd></div>
+                          {% endfor %}
+                        </dl>
+                      {% elif backend.observation.view.kind == 'template' %}
+                        <div class="mini">
+                          <div><span>chars</span><strong>{{ backend.observation.view.characters }}</strong></div>
+                          <div><span>bytes</span><strong>{{ backend.observation.view.bytes }}</strong></div>
+                          <div><span>add_gen</span><strong>{{ backend.observation.view.add_generation_prompt }}</strong></div>
+                        </div>
+                        <div class="protected">
+                          <div class="t">rendered prompt redacted</div>
+                          <p>Template body is not embedded in shareable HTML.</p>
+                          <code class="digest">sha256 {{ backend.observation.view.digest }}</code>
+                        </div>
+                      {% elif backend.observation.view.kind == 'tokens' %}
+                        <div class="mini">
+                          <div><span>count</span><strong>{{ backend.observation.view.count }}</strong></div>
+                          <div><span>special_n</span><strong>{{ backend.observation.view.special_token_count if backend.observation.view.special_token_count is not none else '—' }}</strong></div>
+                          <div><span>ids</span><strong>redacted</strong></div>
+                        </div>
+                        <div class="protected">
+                          <div class="t">token ids redacted</div>
+                          <p>ID sequences remain only in local result.json.</p>
+                          <code class="digest">sha256 {{ backend.observation.view.digest }}</code>
+                        </div>
+                      {% elif backend.observation.view.kind == 'logits' %}
+                        {% if backend.observation.view.rows %}
+                        <div class="logit-bars">
+                          {% for row in backend.observation.view.rows %}
+                          <div class="logit-row">
+                            <div class="id">#{{ row.rank }}</div>
+                            <div class="logit-track"><div class="logit-fill" style="width:{{ (100 - (row.rank - 1) * 8)|abs }}%"></div></div>
+                            <div class="val">{{ row.logit }}</div>
+                          </div>
+                          {% endfor %}
+                        </div>
+                        {% if backend.observation.view.device %}<div class="cell-meta" style="margin-top:8px">device={{ backend.observation.view.device }}</div>{% endif %}
+                        {% else %}
+                        <div class="ev-note">observed but empty top logits</div>
+                        {% endif %}
+                      {% elif backend.observation.view.kind == 'generation' %}
+                        <div class="mini">
+                          <div><span>tokens</span><strong>{{ backend.observation.view.token_count }}</strong></div>
+                          <div><span>chars</span><strong>{{ backend.observation.view.text_characters }}</strong></div>
+                          <div><span>stop</span><strong>{{ backend.observation.view.stop_reason }}</strong></div>
+                        </div>
+                        <div class="protected">
+                          <div class="t">generation redacted</div>
+                          <p>Output text and token ids are not embedded in HTML.</p>
+                          <code class="digest">sha256 {{ backend.observation.view.digest }}</code>
+                        </div>
+                      {% else %}
+                        <div class="mini">
+                          <div><span>fields</span><strong>{{ backend.observation.view.field_count }}</strong></div>
+                          <div><span>content</span><strong>redacted</strong></div>
+                          <div><span>state</span><strong>{{ backend.observation.state_label }}</strong></div>
+                        </div>
+                        <div class="protected">
+                          <div class="t">payload redacted</div>
+                          <p>Payload remains in local result.json.</p>
+                          <code class="digest">sha256 {{ backend.observation.view.digest }}</code>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </details>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="section" id="environment">
+          <div class="section-head">
+            <div>
+              <div class="section-kicker">06 · Environment fingerprint</div>
+              <h2>Host & packages</h2>
+              <p>Reproducibility metadata without secrets.</p>
+            </div>
+          </div>
+          {% if environment.available %}
+          <div class="grid-2">
+            <div class="card card-pad">
+              <dl class="fp">
+                <div class="fp-row"><dt>python</dt><dd>{{ environment.python_version }}</dd></div>
+                <div class="fp-row"><dt>platform</dt><dd title="{{ environment.platform }}">{{ environment.platform }}</dd></div>
+                <div class="fp-row"><dt>machine</dt><dd>{{ environment.machine }}</dd></div>
+                <div class="fp-row"><dt>torch</dt><dd>{{ environment.torch_version }}</dd></div>
+                <div class="fp-row"><dt>cuda</dt><dd>{{ environment.cuda_available }} · {{ environment.cuda_version }}</dd></div>
+                <div class="fp-row"><dt>gpu</dt><dd>{{ environment.gpu_name }}</dd></div>
+              </dl>
+            </div>
+            <div class="card table-wrap" style="box-shadow:none">
+              {% if environment.packages %}
+              <table>
+                <thead><tr><th>package</th><th>version</th></tr></thead>
+                <tbody>
+                  {% for pkg in environment.packages %}
+                  <tr><td class="mono">{{ pkg.name }}</td><td class="mono">{{ pkg.version }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <div class="ev-note" style="margin:14px">No tracked package versions.</div>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <div class="note">Environment fingerprint ausente (run legado).</div>
+          {% endif %}
+        </section>
+
+        <section class="section" id="reproducibility">
+          <div class="section-head">
+            <div>
+              <div class="section-kicker">07 · Reproduce</div>
+              <h2>Policy & provenance</h2>
+              <p>Enough metadata to re-run without storing message text.</p>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="card card-pad">
+              <div class="diag-k">policy / scenario</div>
+              <div class="chips" style="margin-bottom:10px">
+                <span class="chip">parity <b>{{ scenario.profile }}</b></span>
+                <span class="chip">tolerance <b>{{ scenario.tolerance }}</b></span>
+                <span class="chip">schema <b>{{ scenario.schema_version }}</b></span>
+              </div>
+              {% if scenario.description %}<p style="color:var(--muted);font-size:12px;margin-bottom:10px">{{ scenario.description }}</p>{% endif %}
+              <div class="chips">
+                <span class="chip">model <b>{{ scenario.model.id }}</b></span>
+                <span class="chip">revision <b>{{ scenario.model.revision }}</b></span>
+                <span class="chip">dtype <b>{{ scenario.model.dtype }}</b></span>
+              </div>
+              {% if scenario.parameters %}
+              <div class="chips" style="margin-top:10px">
+                {% for parameter in scenario.parameters %}
+                <span class="chip">{{ parameter.label }} <b>{{ parameter.value }}</b></span>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            <div class="card card-pad">
+              <div class="diag-k">traces</div>
+              {% for backend in backends %}
+              <div style="border:1px solid var(--border);border-radius:10px;background:var(--panel-2);padding:10px;margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:8px">
+                  <strong class="mono" style="font-size:12px">{{ backend.label }}</strong>
+                  <span class="badge" data-status="{% if backend.is_baseline %}REFERENCE{% else %}{{ backend.summary_code }}{% endif %}">{% if backend.is_baseline %}REF{% else %}{{ backend.summary_code }}{% endif %}</span>
+                </div>
+                <div class="chips">
+                  <span class="chip">trace <b title="{{ backend.trace_id }}">{{ backend.trace_id[:13] }}…</b></span>
+                  <span class="chip">v <b>{{ backend.trace_version }}</b></span>
+                  {% if backend.duration_ms is not none %}<span class="chip">ms <b>{{ backend.duration_ms }}</b></span>{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="cmd">
+            <code>{{ reproduction_command or report_command }}</code>
+            <button class="btn" type="button" data-copy="{{ reproduction_command or report_command }}">Copy</button>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <span>eleanity · same model · same input · first divergence</span>
+          <span>run {{ run_id }} · {{ metrics.observed_count }}/{{ metrics.total_observations }} observed</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const toast = document.getElementById('toast');
+      const themeToggle = document.getElementById('theme-toggle');
+      const printButton = document.getElementById('print-report');
+      const focusButton = document.getElementById('focus-problems');
+      const expandButton = document.getElementById('expand-layers');
+      const layerDetails = [...document.querySelectorAll('details.layer')];
+      let toastTimer;
+
+      const notify = (message) => {
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.add('on');
+        toastTimer = setTimeout(() => toast.classList.remove('on'), 1600);
+      };
+
+      const setTheme = (theme) => {
+        root.dataset.theme = theme;
+        try { localStorage.setItem('eleanity-report-theme', theme); } catch (_) {}
+      };
+      try {
+        const stored = localStorage.getItem('eleanity-report-theme');
+        if (stored === 'light' || stored === 'dark') setTheme(stored);
+      } catch (_) {}
+
+      themeToggle.addEventListener('click', () => setTheme(root.dataset.theme === 'light' ? 'dark' : 'light'));
+      printButton.addEventListener('click', () => window.print());
+
+      const copyText = async (value) => {
+        try { await navigator.clipboard.writeText(value); }
+        catch (_) {
+          const field = document.createElement('textarea');
+          field.value = value;
+          field.style.position = 'fixed';
+          field.style.opacity = '0';
+          document.body.appendChild(field);
+          field.select();
+          document.execCommand('copy');
+          field.remove();
+        }
+        notify('Copied');
+      };
+      document.querySelectorAll('[data-copy]').forEach((button) => {
+        button.addEventListener('click', () => copyText(button.dataset.copy));
+      });
+
+      focusButton.addEventListener('click', () => {
+        const active = focusButton.getAttribute('aria-pressed') !== 'true';
+        focusButton.setAttribute('aria-pressed', String(active));
+        layerDetails.forEach((node) => {
+          const status = node.dataset.status;
+          const keep = !active || ['DIVERGENT', 'NOT_OBSERVABLE', 'INCOMPARABLE', 'PASS_WITH_TOLERANCE', 'ERROR'].includes(status);
+          node.classList.toggle('is-hidden-by-filter', !keep);
+          if (active && keep && status === 'DIVERGENT') node.open = true;
+        });
+        focusButton.textContent = active ? 'Show all' : 'Focus issues';
+      });
+
+      expandButton.addEventListener('click', () => {
+        const active = expandButton.getAttribute('aria-pressed') !== 'true';
+        expandButton.setAttribute('aria-pressed', String(active));
+        layerDetails.forEach((node) => { node.open = active; });
+        expandButton.textContent = active ? 'Collapse' : 'Expand all';
+      });
+    })();
+  </script>
+</body>
+</html>

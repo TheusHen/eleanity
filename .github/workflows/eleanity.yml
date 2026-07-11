@@ -1,0 +1,177 @@
+name: eleanity-parity
+
+# Reusable workflow for monorepos that call Eleanity as a CI gate.
+# Consumers:  uses: org/eleanity/.github/workflows/eleanity.yml@main
+
+on:
+  workflow_call:
+    inputs:
+      model:
+        description: Model id
+        required: false
+        type: string
+        default: demo
+      backends:
+        description: Comma-separated backends
+        required: false
+        type: string
+        default: fake,fake
+      tokenizer_only:
+        description: Skip weight-heavy layers
+        required: false
+        type: boolean
+        default: true
+      suite:
+        description: Optional suite name
+        required: false
+        type: string
+        default: ""
+      policy:
+        description: Parity policy
+        required: false
+        type: string
+        default: strict
+      install_transformers:
+        description: Install transformers extra
+        required: false
+        type: boolean
+        default: false
+      format:
+        description: CLI output format
+        required: false
+        type: string
+        default: quiet
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model id
+        required: false
+        default: demo
+      backends:
+        default: fake,fake
+      tokenizer_only:
+        type: boolean
+        default: true
+      policy:
+        default: strict
+      install_transformers:
+        type: boolean
+        default: false
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Python
+        run: uv python install 3.11
+
+      - name: Sync
+        run: |
+          if [ "${{ inputs.install_transformers }}" = "true" ]; then
+            uv sync --group dev --extra transformers
+          else
+            uv sync --group dev
+          fi
+
+      - name: Run compare
+        id: compare
+        continue-on-error: true
+        env:
+          MODEL: ${{ inputs.model || 'demo' }}
+          BACKENDS: ${{ inputs.backends || 'fake,fake' }}
+          POLICY: ${{ inputs.policy || 'strict' }}
+          TOKENIZER_ONLY: ${{ inputs.tokenizer_only }}
+          SUITE: ${{ inputs.suite }}
+          FORMAT: ${{ inputs.format || 'quiet' }}
+        run: |
+          set +e
+          ARGS=(compare --model "$MODEL" --backends "$BACKENDS" --policy "$POLICY" --format "$FORMAT" --no-parallel)
+          if [ "$TOKENIZER_ONLY" = "true" ]; then ARGS+=(--tokenizer-only); fi
+          if [ -n "$SUITE" ]; then ARGS+=(--suite "$SUITE"); fi
+          OUTPUT=$(uv run eleanity "${ARGS[@]}" 2>&1)
+          CODE=$?
+          set -e
+          echo "$OUTPUT"
+          # quiet: status=... run_id=...
+          RUN_ID=$(echo "$OUTPUT" | sed -n 's/.*run_id=\([^ ]*\).*/\1/p' | tail -n1)
+          if [ -z "$RUN_ID" ]; then
+            RUN_ID=$(echo "$OUTPUT" | sed -n 's/^Run: //p' | tail -n1)
+          fi
+          STATUS=$(echo "$OUTPUT" | sed -n 's/.*status=\([^ ]*\).*/\1/p' | tail -n1)
+          COVERAGE=$(echo "$OUTPUT" | sed -n 's/.*coverage=\([^ ]*\).*/\1/p' | tail -n1)
+          CONF=$(echo "$OUTPUT" | sed -n 's/.*confidence=\([^ ]*\).*/\1/p' | tail -n1)
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+          echo "confidence=$CONF" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Eleanity parity gate"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| status | \`$STATUS\` |"
+            echo "| coverage | \`$COVERAGE\` |"
+            echo "| confidence | \`$CONF\` |"
+            echo "| exit | \`$CODE\` |"
+            echo "| run_id | \`$RUN_ID\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $CODE
+
+      - name: Upload SARIF
+        if: always() && steps.compare.outputs.run_id != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: .eleanity/runs/${{ steps.compare.outputs.run_id }}/results.sarif
+        continue-on-error: true
+
+      - name: Upload run artifacts
+        if: always() && steps.compare.outputs.run_id != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: eleanity-run
+          path: .eleanity/runs/${{ steps.compare.outputs.run_id }}
+
+      - name: PR comment
+        if: always() && github.event_name == 'pull_request' && steps.compare.outputs.run_id != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const runId = '${{ steps.compare.outputs.run_id }}';
+            const resultPath = `.eleanity/runs/${runId}/result.json`;
+            if (!fs.existsSync(resultPath)) return;
+            const data = JSON.parse(fs.readFileSync(resultPath, 'utf8'));
+            const d = data.diagnosis || {};
+            const gates = data.gates || {};
+            const cov = data.coverage || d.coverage || {};
+            const body = [
+              `### Eleanity parity`,
+              ``,
+              `**Status:** \`${d.status || 'unknown'}\``,
+              `**Coverage:** \`${cov.required_coverage_percent ?? 'n/a'}%\``,
+              `**Confidence:** \`${d.confidence ?? 'n/a'}\``,
+              `**First divergence:** \`${d.first_divergence || 'none'}\``,
+              `**Gates:** \`${gates.passed}\` — ${gates.summary || ''}`,
+              ``,
+              d.summary || '',
+              ``,
+              `Run: \`${runId}\``,
+              ``,
+              '```',
+              data.reproduction_command || '',
+              '```',
+            ].join('\n');
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

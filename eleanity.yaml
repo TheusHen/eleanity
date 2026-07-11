@@ -1,0 +1,74 @@
+schema_version: "0.2"
+name: eleanity-project
+model: Qwen/Qwen2.5-0.5B-Instruct
+baseline: transformers
+backends:
+  - transformers
+  - vllm
+  - llamacpp
+policy: strict
+observe:
+  - artifact
+  - template
+  - special_tokens
+  - tokens
+  - generation
+redact_prompts: false
+tokenizer_only: false
+parallel: true
+workers: 4
+runs_dir: .eleanity/runs
+scenarios_dir: scenarios
+golden_dir: .eleanity/golden
+suites:
+  - name: qwen-parity
+    path: fixtures/qwen/scenarios.yaml
+    description: Core Qwen chat parity suite
+  - name: tokenizer-torture
+    path: fixtures/qwen/tokenizer_torture.yaml
+    description: Unicode and tokenizer edge cases
+  - name: tool-calling
+    path: fixtures/suites/tool-calling.yaml
+    description: Tool / function calling functional checks
+  - name: public-tokenizer
+    path: fixtures/public/tokenizer-edge.yaml
+    description: Public tokenizer edge fixtures (Unicode, emoji, CJK, RTL)
+  - name: public-chat-templates
+    path: fixtures/public/chat-templates.yaml
+    description: Public chat-template and multi-turn fixtures
+  - name: public-generation-api
+    path: fixtures/public/generation-api.yaml
+    description: Public generation/API conformance fixtures
+backend_profiles:
+  transformers:
+    adapter: transformers
+  vllm:
+    adapter: vllm
+    base_url: ${ELEANITY_VLLM_URL}
+    api_key_env: ELEANITY_VLLM_API_KEY
+  llamacpp:
+    adapter: llamacpp
+    base_url: ${ELEANITY_LLAMACPP_URL}
+  ollama:
+    adapter: ollama
+    base_url: ${ELEANITY_OLLAMA_URL}
+  sglang:
+    adapter: sglang
+    base_url: ${ELEANITY_SGLANG_URL}
+  tgi:
+    adapter: tgi
+    base_url: ${ELEANITY_TGI_URL}
+gates:
+  # Missing/unobserved layers count as NOT_OBSERVABLE and are allowed here.
+  - name: prompt-must-match
+    layers: [template, tokens, special_tokens]
+    max_status: PASS
+    allow: [NOT_OBSERVABLE]
+  - name: generation-soft
+    layers: [generation]
+    max_status: PASS_WITH_TOLERANCE
+    allow: [NOT_OBSERVABLE, INCOMPARABLE]
+  - name: no-hard-errors
+    layers: [artifact, template, tokens, generation]
+    max_status: DIVERGENT
+    allow: [NOT_OBSERVABLE, INCOMPARABLE, PASS, PASS_WITH_TOLERANCE, DIVERGENT]

@@ -1,0 +1,227 @@
+scenarios:
+  - schema_version: "0.1"
+    name: qwen-basic-multiturn
+    description: Simple system + user conversation
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+      revision: main
+      trust_remote_code: false
+      dtype: auto
+      device_map: auto
+    messages:
+      - role: system
+        content: You are a helpful assistant.
+      - role: user
+        content: Explique recursão em uma frase.
+    parameters:
+      temperature: 0
+      top_p: 1.0
+      max_tokens: 64
+      seed: 42
+      repetition_penalty: 1.0
+    generation:
+      add_generation_prompt: true
+      continue_final_message: false
+    observe: [artifact, template, tokens, special_tokens, generation]
+    parity_policy: strict
+    backends: [transformers, vllm, llamacpp]
+
+  - schema_version: "0.1"
+    name: qwen-multiturn-history
+    description: Multi-turn conversation with prior assistant turn
+    model:
+      id: Qwen/Qwen2.5-0.5B-Instruct
+    messages:
+      - role: system
+        content: You are concise.
+      - role: user
+        content: O que é uma lista?
+      - role: assistant
+        content: Uma sequência ordenada de elementos.
+      - role: user
+        content: E uma pilha?
+    parameters: {temperature: 0, max_tokens: 32, seed: 42}
+    generation: {add_generation_prompt: true}
+    observe: [template, tokens, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-no-system
+    description: No system message
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: Olá
+    parameters: {temperature: 0, max_tokens: 16, seed: 42}
+    observe: [template, tokens, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-add-generation-prompt-true
+    description: Explicit add_generation_prompt=true
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: Diga oi.
+    parameters: {temperature: 0, max_tokens: 8, seed: 1}
+    generation: {add_generation_prompt: true}
+    observe: [template, tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-add-generation-prompt-false
+    description: Explicit add_generation_prompt=false
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: Diga oi.
+    parameters: {temperature: 0, max_tokens: 8, seed: 1}
+    generation: {add_generation_prompt: false}
+    observe: [template, tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-portuguese
+    description: Portuguese accented text
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: Explique ação, coração e informações com ênfase.
+    parameters: {temperature: 0, max_tokens: 24, seed: 42}
+    observe: [template, tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-chinese
+    description: Chinese text
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: 用一句话解释递归。
+    parameters: {temperature: 0, max_tokens: 24, seed: 42}
+    observe: [template, tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-arabic-rtl
+    description: Arabic RTL text
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: اشرح التكرار في جملة واحدة.
+    parameters: {temperature: 0, max_tokens: 24, seed: 42}
+    observe: [template, tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-emoji-combining
+    description: Emojis and combining characters
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: "Cafe\u0301 😀 👩‍💻 ZWJ family 👨‍👩‍👧"
+    parameters: {temperature: 0, max_tokens: 16, seed: 42}
+    observe: [template, tokens, special_tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-json-code
+    description: JSON and code fencing
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: |
+          Return JSON only: {"ok": true, "n": 1}
+          ```python
+          def f(x):
+              return x * 2
+          ```
+    parameters: {temperature: 0, max_tokens: 32, seed: 42}
+    observe: [template, tokens, structured]
+    parity_policy: functional
+
+  - schema_version: "0.1"
+    name: qwen-url-escaped
+    description: URLs and escaped characters
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: 'See https://example.com/a?x=1&y=2 <tag> & "quotes" \\n'
+    parameters: {temperature: 0, max_tokens: 16, seed: 42}
+    observe: [template, tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-near-context-limit
+    description: Sequences near a practical context stress (repeated tokens)
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: "token " 
+    parameters: {temperature: 0, max_tokens: 8, seed: 42, repeat: 200}
+    observe: [template, tokens, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-custom-stop
+    description: Custom stop tokens
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: Liste A, B, C.
+    parameters: {temperature: 0, max_tokens: 64, seed: 42, stop: ["C"]}
+    observe: [template, tokens, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-bos-eos-probe
+    description: Probe special BOS/EOS handling
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: "<|endoftext|> hello <|im_start|>"
+    parameters: {temperature: 0, max_tokens: 8, seed: 42}
+    observe: [template, tokens, special_tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-empty-user
+    description: Empty user content edge case
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: ""
+    parameters: {temperature: 0, max_tokens: 16, seed: 42}
+    observe: [template, tokens]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-seed-determinism
+    model: {id: Qwen/Qwen2.5-0.5B-Instruct}
+    messages:
+      - role: user
+        content: Diga uma cor.
+    parameters: {temperature: 0, max_tokens: 8, seed: 99}
+    observe: [tokens, generation]
+    parity_policy: strict
+
+  - schema_version: "0.1"
+    name: qwen-large-model-policy
+    description: Load policy for larger Qwen checkpoints (7B+)
+    model:
+      id: Qwen/Qwen2.5-7B-Instruct
+      revision: main
+      trust_remote_code: false
+      dtype: auto
+      device_map: auto
+      attn_implementation: sdpa
+    messages:
+      - role: system
+        content: You are a helpful assistant.
+      - role: user
+        content: Em uma frase, o que é paridade de runtime?
+    parameters: {temperature: 0, max_tokens: 32, seed: 42}
+    generation: {add_generation_prompt: true}
+    observe: [artifact, template, special_tokens, tokens, generation]
+    parity_policy: strict
+    backends: [transformers, vllm, llamacpp]

@@ -1,0 +1,24 @@
+schema_version: "0.3"
+name: eleanity-parity-bench
+description: Honest runtime parity scenarios — not model quality benchmarks.
+suites:
+  - id: generic-chat
+    path: generic/chat.yaml
+    tags: [chat, ci, portable]
+    default_policy: strict
+  - id: qwen-parity
+    path: ../../fixtures/qwen/scenarios.yaml
+    tags: [qwen, chat]
+    default_policy: strict
+  - id: tokenizer-torture
+    path: ../../fixtures/qwen/tokenizer_torture.yaml
+    tags: [tokenizer, unicode, ci]
+    default_policy: strict
+  - id: tool-calling
+    path: ../../fixtures/suites/tool-calling.yaml
+    tags: [tools, json, functional]
+    default_policy: functional
+  - id: generic-chat-fixtures
+    path: ../../fixtures/suites/generic-chat.yaml
+    tags: [chat, tokenizer_only]
+    default_policy: strict

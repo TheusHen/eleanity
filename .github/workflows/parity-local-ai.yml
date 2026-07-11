@@ -1,0 +1,233 @@
+name: parity-local-ai
+
+# Downloads a tiny open model and runs real eleanity compare on CPU.
+# Publishes status / coverage / confidence / timings as artifacts + job summary.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Nightly 06:15 UTC
+    - cron: "15 6 * * *"
+  workflow_call:
+    inputs:
+      model:
+        description: HF model id (keep tiny on CPU runners)
+        required: false
+        type: string
+        default: HuggingFaceTB/SmolLM2-135M-Instruct
+      policy:
+        description: parity policy
+        required: false
+        type: string
+        default: strict
+      tokenizer_only:
+        description: tokenizer-only (faster)
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      model:
+        description: HF model id (keep tiny on CPU runners)
+        required: false
+        default: HuggingFaceTB/SmolLM2-135M-Instruct
+      policy:
+        description: parity policy
+        required: false
+        default: strict
+      tokenizer_only:
+        description: tokenizer-only (faster)
+        type: boolean
+        default: false
+
+concurrency:
+  group: local-ai-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HF_HUB_ENABLE_HF_TRANSFER: "0"
+  TRANSFORMERS_VERBOSITY: error
+  ELEANITY_CI_MODEL: ${{ inputs.model || 'HuggingFaceTB/SmolLM2-135M-Instruct' }}
+  ELEANITY_CI_POLICY: ${{ inputs.policy || 'strict' }}
+  ELEANITY_CI_BACKENDS: transformers,transformers
+  ELEANITY_CI_OUT: .eleanity/ci-out
+
+jobs:
+  transformers-self-parity:
+    name: transformers × transformers (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: full
+            tokenizer_only: "0"
+            policy: strict
+          - mode: tokenizer-only
+            tokenizer_only: "1"
+            policy: strict
+          - mode: quantized-policy
+            tokenizer_only: "0"
+            policy: quantized
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Python 3.11
+        run: uv python install 3.11
+
+      - name: Cache Hugging Face hub
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-${{ env.ELEANITY_CI_MODEL }}-v1
+          restore-keys: |
+            hf-${{ runner.os }}-${{ env.ELEANITY_CI_MODEL }}-
+            hf-${{ runner.os }}-
+
+      - name: Install eleanity + transformers (CPU torch)
+        run: |
+          uv sync --group dev --extra transformers
+          uv run python -c "import torch, transformers; print('torch', torch.__version__, 'cuda', torch.cuda.is_available()); print('transformers', transformers.__version__)"
+
+      - name: HF token (optional)
+        if: ${{ env.HF_TOKEN != '' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "HF_TOKEN is set (redacted)"
+
+      - name: Run local AI parity script
+        env:
+          ELEANITY_CI_TOKENIZER_ONLY: ${{ matrix.tokenizer_only }}
+          ELEANITY_CI_POLICY: ${{ matrix.policy }}
+          ELEANITY_CI_OUT: .eleanity/ci-out/${{ matrix.mode }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          chmod +x scripts/ci/run_local_ai_parity.sh
+          bash scripts/ci/run_local_ai_parity.sh
+
+      - name: Assert values (PASS family + coverage)
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys, os
+          mode = os.environ["MODE"]
+          path = pathlib.Path(f".eleanity/ci-out/{mode}/values.json")
+          assert path.is_file(), f"missing {path}"
+          v = json.loads(path.read_text(encoding="utf-8"))
+          print("VALUES", json.dumps(v, indent=2))
+          status = str(v.get("status") or "")
+          allowed = {
+              "PASS",
+              "PASS_WITH_TOLERANCE",
+              "PASS_WITH_LIMITED_COVERAGE",
+          }
+          # self-parity on identical backend should not DIVERGENT/ERROR
+          if status not in allowed:
+              print(f"::error::Unexpected status {status} for self-parity mode={mode}")
+              sys.exit(1)
+          cov = v.get("coverage_percent")
+          if cov is not None and float(cov) < 25:
+              print(f"::warning::Very low coverage {cov}%")
+          conf = v.get("confidence")
+          if conf is not None and float(conf) < 0.3:
+              print(f"::warning::Low confidence {conf}")
+          print(f"::notice::status={status} coverage={cov} confidence={conf} run_id={v.get('run_id')}")
+          PY
+
+      - name: Job summary
+        if: always()
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          python - <<'PY'
+          import json, pathlib, os
+          mode = os.environ["MODE"]
+          path = pathlib.Path(f".eleanity/ci-out/{mode}/values.json")
+          lines = [f"### Local AI parity — `{mode}`", ""]
+          if path.is_file():
+              v = json.loads(path.read_text(encoding="utf-8"))
+              lines += [
+                  f"| Field | Value |",
+                  f"| --- | --- |",
+                  f"| status | `{v.get('status')}` |",
+                  f"| impact | `{v.get('impact')}` |",
+                  f"| coverage % | `{v.get('coverage_percent')}` |",
+                  f"| confidence | `{v.get('confidence')}` |",
+                  f"| first_divergence | `{v.get('first_divergence')}` |",
+                  f"| run_id | `{v.get('run_id')}` |",
+                  f"| exit_code | `{v.get('exit_code')}` |",
+                  "",
+                  "Verified layers:",
+                  "",
+                  "```",
+                  json.dumps(v.get("verified_layers"), indent=2),
+                  "```",
+                  "",
+                  "Reproduction:",
+                  "",
+                  "```",
+                  str(v.get("reproduction_command") or ""),
+                  "```",
+              ]
+          else:
+              lines.append("_values.json not produced_")
+          pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-ai-${{ matrix.mode }}
+          path: |
+            .eleanity/ci-out/${{ matrix.mode }}/
+            .eleanity/runs/
+          if-no-files-found: warn
+
+  cli-matrix-fake-vs-policy:
+    name: policy matrix (fake, offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - name: Compare under each policy
+        run: |
+          set -euo pipefail
+          mkdir -p .eleanity/ci-out/policies
+          for policy in strict quantized functional api_conformance; do
+            echo "== policy $policy =="
+            uv run eleanity compare \
+              --model demo \
+              --backends fake,fake \
+              --policy "$policy" \
+              --format json \
+              --no-parallel --no-gates \
+              > ".eleanity/ci-out/policies/$policy.json" || true
+            python - <<PY
+          import json, pathlib
+          p = pathlib.Path(".eleanity/ci-out/policies/${policy}.json")
+          raw = p.read_text(encoding="utf-8", errors="replace")
+          idx = raw.find("{")
+          data = json.loads(raw[idx:]) if idx >= 0 else {}
+          s = (data.get("summary") or {})
+          print(f"policy=${policy} status={s.get('status')} coverage={s.get('coverage_percent')} confidence={s.get('confidence')}")
+          PY
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: policy-matrix-fake
+          path: .eleanity/ci-out/policies/

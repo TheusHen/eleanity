@@ -1,0 +1,51 @@
+name: parity-public-fixtures
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "fixtures/**"
+      - "src/eleanity/**"
+      - ".github/workflows/parity-public-fixtures.yml"
+  pull_request:
+    paths:
+      - "fixtures/**"
+      - "src/eleanity/**"
+  workflow_dispatch:
+
+jobs:
+  fixtures-fake:
+    name: public fixtures (fake backends)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - name: Run public fixture files
+        run: |
+          set -euo pipefail
+          mkdir -p .eleanity/ci-out/fixtures
+          for f in fixtures/public/*.yaml fixtures/suites/*.yaml; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f" .yaml)
+            echo "== fixture $f =="
+            set +e
+            uv run eleanity test "$f" --backends fake,fake --format quiet --fail-fast 2>&1 \
+              | tee ".eleanity/ci-out/fixtures/$name.txt"
+            code=${PIPESTATUS[0]}
+            set -e
+            echo "exit=$code" >> ".eleanity/ci-out/fixtures/$name.txt"
+            # fake should not hard-error (exit 2)
+            if [ "$code" -eq 2 ]; then
+              echo "::error::fixture $f exited config error"
+              exit 2
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fixture-results
+          path: .eleanity/ci-out/fixtures/

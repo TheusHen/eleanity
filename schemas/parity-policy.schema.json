@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eleanity.dev/schemas/parity-policy.schema.json",
+  "title": "Eleanity Formal Parity Policy",
+  "type": "object",
+  "required": ["policy", "comparators"],
+  "properties": {
+    "policy": {
+      "type": "string",
+      "enum": ["strict", "quantized", "functional", "api_conformance"]
+    },
+    "description": { "type": "string" },
+    "comparators": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["mode"],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["exact", "numerical", "prefix", "topk", "set_equal", "schema", "ignore"]
+          },
+          "atol": { "type": ["number", "null"] },
+          "rtol": { "type": ["number", "null"] },
+          "top_k": { "type": ["integer", "null"] },
+          "top_k_agreement": { "type": ["number", "null"] },
+          "exact_prefix_tokens": { "type": ["integer", "null"] },
+          "max_relative_drift": { "type": ["number", "null"] },
+          "required": { "type": "boolean" },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

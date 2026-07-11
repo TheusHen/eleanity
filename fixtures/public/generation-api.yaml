@@ -1,0 +1,59 @@
+schema_version: "0.1"
+name: greedy-deterministic
+description: Greedy decode with seed
+messages:
+  - role: user
+    content: Reply with exactly OK
+parameters: { temperature: 0, max_tokens: 4, seed: 42 }
+observe: [generation, api]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: sampling-seeded
+description: Sampling with fixed seed
+messages:
+  - role: user
+    content: Invent a color name
+parameters: { temperature: 0.8, top_p: 0.9, max_tokens: 8, seed: 7 }
+observe: [generation]
+parity_policy: quantized
+---
+schema_version: "0.1"
+name: stop-sequences
+description: Multiple stop sequences
+messages:
+  - role: user
+    content: Count 1 2 3 4 5
+parameters: { temperature: 0, max_tokens: 32, seed: 42, stop: ["3", "\n\n"] }
+observe: [generation]
+parity_policy: functional
+---
+schema_version: "0.1"
+name: structured-json
+description: JSON-shaped functional check
+messages:
+  - role: user
+    content: Return {"ok": true} as JSON only
+parameters: { temperature: 0, max_tokens: 32, seed: 42 }
+observe: [generation, structured]
+parity_policy: functional
+---
+schema_version: "0.1"
+name: streaming-shape
+description: Streaming observation when exposed
+messages:
+  - role: user
+    content: Stream hello
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+observe: [streaming, api, generation]
+parity_policy: api_conformance
+---
+schema_version: "0.1"
+name: usage-finish
+description: Usage and finish_reason fields
+messages:
+  - role: user
+    content: Hi
+parameters: { temperature: 0, max_tokens: 4, seed: 42 }
+observe: [generation, api]
+parity_policy: api_conformance

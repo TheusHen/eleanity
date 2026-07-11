@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eleanity.dev/schemas/eleanity-trace-v1.schema.json",
+  "title": "Eleanity Trace Specification",
+  "description": "Interoperable parity trace document (product format).",
+  "type": "object",
+  "required": ["schema_version", "run_id", "subjects", "parity", "comparisons"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^1\\."
+    },
+    "$schema": { "type": "string" },
+    "eleanity_version": { "type": "string" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "run_type": { "type": "string" },
+    "created_at": { "type": "string" },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "comparators": { "type": "object" }
+      }
+    },
+    "execution_capsule": { "type": ["object", "null"] },
+    "subjects": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "backend": { "type": "string" },
+          "trace_id": { "type": "string" },
+          "layers": { "type": "object" },
+          "execution_capsule": { "type": ["object", "null"] }
+        }
+      }
+    },
+    "observations": { "type": "object" },
+    "comparisons": { "type": "object" },
+    "first_divergence": { "type": ["object", "null"] },
+    "propagation": { "type": "array" },
+    "parity": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "PASS_WITH_TOLERANCE",
+            "DIVERGENT",
+            "INCONCLUSIVE",
+            "UNSUPPORTED",
+            "ERROR"
+          ]
+        },
+        "legacy_status": { "type": "string" },
+        "status_definition": { "type": "string" }
+      }
+    },
+    "impact": {
+      "type": ["object", "null"],
+      "properties": {
+        "parity": { "type": "string" },
+        "impact": {
+          "type": "string",
+          "enum": ["NONE", "LOW", "MEDIUM", "HIGH", "CATASTROPHIC"]
+        },
+        "first_divergence_layer": { "type": ["string", "null"] },
+        "rationale": { "type": "string" }
+      }
+    },
+    "stability": { "type": ["object", "null"] },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "confidence": { "type": "number" },
+          "message": { "type": "string" },
+          "evidence": { "type": "object" },
+          "affected_layers": { "type": "array", "items": { "type": "string" } },
+          "suggested_remediation": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "gates": { "type": ["object", "null"] },
+    "timings_ms": { "type": ["object", "null"] },
+    "reproduction_command": { "type": ["string", "null"] },
+    "privacy": { "type": "object" },
+    "extensions": { "type": "object" },
+    "document_hash": { "type": "string" }
+  },
+  "additionalProperties": true
+}

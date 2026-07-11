@@ -1,0 +1,25 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  full-pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - run: uv run pytest -q --tb=short --cov=eleanity --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nightly-coverage
+          path: coverage.xml
+
+  # Real model job is already scheduled inside parity-local-ai.yml.
+  # Keep nightly focused on full offline suite; trigger local-ai via workflow_dispatch there.

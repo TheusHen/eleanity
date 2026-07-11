@@ -1,0 +1,72 @@
+schema_version: "0.1"
+name: unicode-combined
+description: Combining characters and NFC/NFD edge cases
+messages:
+  - role: user
+    content: "cafe\u0301 vs café — ñ and ñ"
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+observe: [artifact, template, special_tokens, tokens]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: emoji-zwj
+description: Emoji ZWJ sequences
+messages:
+  - role: user
+    content: "Family 👨‍👩‍👧 and flags 🇧🇷🇺🇸"
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+observe: [template, tokens]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: whitespace-newlines
+description: Consecutive spaces, trailing newline, tabs
+messages:
+  - role: user
+    content: "a  b\t c\n\n"
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+observe: [template, tokens]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: invisible-chars
+description: Zero-width and bidi marks
+messages:
+  - role: user
+    content: "a\u200bb\u200ec\u200f"
+parameters: { temperature: 0, max_tokens: 8, seed: 42 }
+observe: [template, tokens]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: cjk-rtl
+description: CJK and RTL mixed
+messages:
+  - role: user
+    content: "日本語テスト והיי مرحبا"
+parameters: { temperature: 0, max_tokens: 16, seed: 42 }
+observe: [template, tokens]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: code-fence
+description: Markdown code block with trailing newline
+messages:
+  - role: user
+    content: |
+      ```python
+      print("hi")
+      ```
+parameters: { temperature: 0, max_tokens: 16, seed: 42 }
+observe: [template, tokens, generation]
+parity_policy: strict
+---
+schema_version: "0.1"
+name: long-prompt-prefix
+description: Long repeated prefix (truncation stress)
+messages:
+  - role: user
+    content: "word " 
+parameters: { temperature: 0, max_tokens: 4, seed: 42 }
+observe: [tokens]
+parity_policy: strict

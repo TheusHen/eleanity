@@ -1,0 +1,19 @@
+services:
+  eleanity:
+    build: .
+    volumes:
+      - eleanity-data:/data
+      - ./fixtures:/app/fixtures:ro
+    environment:
+      - ELEANITY_VLLM_URL=${ELEANITY_VLLM_URL:-}
+      - ELEANITY_LLAMACPP_URL=${ELEANITY_LLAMACPP_URL:-}
+      - ELEANITY_OLLAMA_URL=${ELEANITY_OLLAMA_URL:-http://ollama:11434}
+    command: ["doctor"]
+
+  # Optional demo backends — start only when needed
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports: ["11434:11434"]
+
+volumes:
+  eleanity-data:

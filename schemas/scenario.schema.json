@@ -1,0 +1,290 @@
+{
+  "$defs": {
+    "GenerationConfig": {
+      "properties": {
+        "add_generation_prompt": {
+          "default": true,
+          "title": "Add Generation Prompt",
+          "type": "boolean"
+        },
+        "continue_final_message": {
+          "default": false,
+          "title": "Continue Final Message",
+          "type": "boolean"
+        }
+      },
+      "title": "GenerationConfig",
+      "type": "object"
+    },
+    "Message": {
+      "properties": {
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "content"
+      ],
+      "title": "Message",
+      "type": "object"
+    },
+    "ModelSpec": {
+      "description": "Model identity and load policy shared across adapters.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "main",
+          "title": "Revision"
+        },
+        "trust_remote_code": {
+          "default": false,
+          "title": "Trust Remote Code",
+          "type": "boolean"
+        },
+        "dtype": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "auto",
+          "title": "Dtype"
+        },
+        "device_map": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "auto",
+          "title": "Device Map"
+        },
+        "quantization": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quantization"
+        },
+        "max_memory": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Memory"
+        },
+        "attn_implementation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attn Implementation"
+        },
+        "load_in_8bit": {
+          "default": false,
+          "title": "Load In 8Bit",
+          "type": "boolean"
+        },
+        "load_in_4bit": {
+          "default": false,
+          "title": "Load In 4Bit",
+          "type": "boolean"
+        },
+        "local_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Path"
+        },
+        "lora_adapters": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Lora Adapters",
+          "type": "array"
+        },
+        "tokenizer_only": {
+          "default": false,
+          "title": "Tokenizer Only",
+          "type": "boolean"
+        }
+      },
+      "title": "ModelSpec",
+      "type": "object"
+    },
+    "ParityProfile": {
+      "enum": [
+        "strict",
+        "quantized",
+        "functional",
+        "api_conformance"
+      ],
+      "title": "ParityProfile",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ModelSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/Message"
+      },
+      "title": "Messages",
+      "type": "array"
+    },
+    "parameters": {
+      "additionalProperties": true,
+      "title": "Parameters",
+      "type": "object"
+    },
+    "generation": {
+      "$ref": "#/$defs/GenerationConfig"
+    },
+    "observe": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Observe",
+      "type": "array"
+    },
+    "parity_profile": {
+      "$ref": "#/$defs/ParityProfile",
+      "default": "strict"
+    },
+    "parity_policy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ParityProfile"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "tolerance": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Tolerance"
+    },
+    "backends": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Backends",
+      "type": "array"
+    },
+    "redact_prompts": {
+      "default": false,
+      "title": "Redact Prompts",
+      "type": "boolean"
+    },
+    "comparators": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Comparators",
+      "type": "object"
+    }
+  },
+  "required": [
+    "name",
+    "messages"
+  ],
+  "title": "Scenario",
+  "type": "object"
+}

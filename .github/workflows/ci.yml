@@ -1,0 +1,141 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - run: uv run ruff check src tests
+      - run: uv run ruff format --check src tests
+
+  typecheck:
+    name: typecheck (mypy)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - run: uv run mypy src/eleanity || true
+
+  unit:
+    name: unit (${{ matrix.os }} · py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Python
+        run: uv python install ${{ matrix.python-version }}
+      - name: Sync
+        run: uv sync --group dev
+      - name: Pytest unit
+        run: uv run pytest tests/unit -q --tb=short --cov=eleanity --cov-report=xml --cov-report=term-missing
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage.xml
+
+  contract:
+    name: contract + regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - run: uv run pytest tests/contract tests/regression -q --tb=short
+
+  integration-offline:
+    name: integration (offline / degraded)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - run: uv run pytest tests/integration -q --tb=short
+
+  schema-contracts:
+    name: schema contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - run: uv run pytest tests/unit/test_schema_contracts.py tests/unit/test_coverage_report.py -q
+      - name: Export pydantic schemas smoke
+        run: |
+          uv run python -c "from eleanity.models.schemas import Scenario, ObservationTrace; Scenario.model_json_schema(); ObservationTrace.model_json_schema()"
+
+  cli-smoke:
+    name: CLI smoke (fake)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --group dev
+      - name: doctor / compare / report / replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run eleanity doctor --format json | tee doctor.json
+          uv run eleanity compare --model demo --backends fake,fake --format quiet --no-parallel --no-gates | tee compare.quiet
+          RUN_ID=$(sed -n 's/.*run_id=\([^ ]*\).*/\1/p' compare.quiet | tail -n1)
+          echo "RUN_ID=$RUN_ID"
+          test -n "$RUN_ID"
+          uv run eleanity report "$RUN_ID" --format text | tee report.txt
+          uv run eleanity report "$RUN_ID" --format json > report.json
+          uv run eleanity runs ls --format json | tee runs.json
+          uv run eleanity policy-spec --policy quantized --format quiet
+          uv run eleanity stabilize --backend fake --model demo --repetitions 2 --format quiet
+          uv run eleanity check-adapter --backend fake --format quiet
+          uv run eleanity certify --backend fake --format quiet
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cli-smoke-artifacts
+          path: |
+            doctor.json
+            compare.quiet
+            report.txt
+            report.json
+            runs.json
+            .eleanity/runs/
