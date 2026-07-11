@@ -62,8 +62,8 @@ jobs:
             tag_sha="$(git rev-list -n 1 "$tag")"
 
             if [ "$tag_sha" != "$GITHUB_SHA" ]; then
-              echo "::error::$tag already belongs to $tag_sha, not $GITHUB_SHA"
-              exit 1
+              echo "::notice::$tag already belongs to $tag_sha, not $GITHUB_SHA — skipping (auto-version-bump will handle)."
+              complete=true
             fi
 
             if gh release view "$tag" >/dev/null 2>&1; then

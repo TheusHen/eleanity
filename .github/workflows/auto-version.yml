@@ -1,0 +1,122 @@
+name: auto-version-bump
+
+# Automatically bump the patch version when code changes land on main
+# and the current version tag already exists. This ensures every meaningful
+# push to main gets a unique publishable version.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "scenarios/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-version-main
+  cancel-in-progress: false
+
+jobs:
+  auto-bump:
+    runs-on: ubuntu-latest
+    # Skip commits from this workflow to avoid circular triggers
+    if: "!contains(github.event.head_commit.message, '[auto-bump]')"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git identity
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Check if version bump is needed
+        id: check
+        run: |
+          set -euo pipefail
+
+          version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' pyproject.toml)"
+          tag="v${version}"
+
+          echo "current_version=$version" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            tag_sha="$(git rev-list -n 1 "$tag")"
+            if [ "$tag_sha" != "$GITHUB_SHA" ]; then
+              echo "needs_bump=true" >> "$GITHUB_OUTPUT"
+              echo "::notice::Tag $tag exists on $tag_sha (current: $GITHUB_SHA) — patch bump needed."
+            else
+              echo "needs_bump=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::Tag $tag already points to this commit. No bump needed."
+            fi
+          else
+            echo "needs_bump=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Tag $tag does not exist yet. Release workflow will handle it."
+          fi
+
+      - name: Compute next patch version
+        if: steps.check.outputs.needs_bump == 'true'
+        id: next
+        run: |
+          set -euo pipefail
+
+          current="${{ steps.check.outputs.current_version }}"
+
+          # Split M.m.p
+          IFS='.' read -r major minor patch <<< "$current"
+          next_patch=$((patch + 1))
+          next_version="${major}.${minor}.${next_patch}"
+
+          echo "next_version=$next_version" >> "$GITHUB_OUTPUT"
+          echo "::notice::Bumping $current → $next_version"
+
+      - name: Set up uv
+        if: steps.check.outputs.needs_bump == 'true'
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        if: steps.check.outputs.needs_bump == 'true'
+        run: uv python install 3.11
+
+      - name: Apply version bump
+        if: steps.check.outputs.needs_bump == 'true'
+        env:
+          CURRENT: ${{ steps.check.outputs.current_version }}
+          NEXT: ${{ steps.next.outputs.next_version }}
+        run: |
+          set -euo pipefail
+
+          # Update pyproject.toml
+          sed -i "s/^version = \"${CURRENT}\"$/version = \"${NEXT}\"/" pyproject.toml
+
+          # Update version.py
+          sed -i "s/^__version__ = \"${CURRENT}\"$/__version__ = \"${NEXT}\"/" src/eleanity/version.py
+
+          # Regenerate lockfile
+          uv lock
+
+          # Verify the changes took effect
+          grep -q "version = \"${NEXT}\"" pyproject.toml
+          grep -q "__version__ = \"${NEXT}\"" src/eleanity/version.py
+
+          echo "✅ Version files updated to ${NEXT}"
+
+      - name: Commit and push version bump
+        if: steps.check.outputs.needs_bump == 'true'
+        env:
+          NEXT: ${{ steps.next.outputs.next_version }}
+        run: |
+          set -euo pipefail
+
+          git add pyproject.toml src/eleanity/version.py uv.lock
+          git commit -m "chore(release): auto-bump version to ${NEXT} [auto-bump]"
+          git push origin main
