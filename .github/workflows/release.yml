@@ -1,60 +1,49 @@
 name: release
 
-# Every non-release commit merged into main gets a new patch version. The
-# workflow writes that version back to the repository, publishes the matching
-# wheel/sdist to PyPI, then creates an immutable Git tag and GitHub prerelease.
+# A normal main commit opens an automated version-bump PR. That PR must satisfy
+# branch protection; once merged, this workflow publishes its exact commit.
 on:
   push:
     branches: [main]
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
-  # Version allocation must be serial: two workflows must never choose the
-  # same next patch number.
   group: release-main
   cancel-in-progress: false
 
 jobs:
-  release:
+  prepare-release-pr:
+    if: ${{ !contains(github.event.head_commit.message, '[skip auto-release]') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Require the release automation token
+        env:
+          RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
+        run: |
+          if [ -z "$RELEASE_PAT" ]; then
+            echo "::error::RELEASE_PAT is required to create a release PR that can run required checks."
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          # Always process the current main tip. Queued runs from older pushes
-          # then observe the release marker below and exit without allocating
-          # a duplicate version.
           ref: main
-          # A fine-grained PAT is optional, but needed when protected-branch
-          # rules do not allow GITHUB_TOKEN to push the version commit.
-          token: ${{ secrets.RELEASE_PAT || github.token }}
-
-      - name: Ignore an already-versioned main tip
-        id: source
-        run: |
-          set -euo pipefail
-          subject="$(git log -1 --format=%s)"
-          echo "main tip: $subject"
-          if [[ "$subject" == *"[skip auto-release]"* ]]; then
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "main is already the release commit; nothing to publish"
-          else
-            echo "release=true" >> "$GITHUB_OUTPUT"
-          fi
+          # A PAT (or GitHub App token) is required here: events created by
+          # GITHUB_TOKEN do not start the required PR-check workflows.
+          token: ${{ secrets.RELEASE_PAT }}
 
       - uses: astral-sh/setup-uv@v7
-        if: steps.source.outputs.release == 'true'
         with:
           enable-cache: true
 
       - name: Install Python
-        if: steps.source.outputs.release == 'true'
         run: uv python install 3.11
 
       - name: Allocate the next patch version
-        if: steps.source.outputs.release == 'true'
         id: version
         run: |
           set -euo pipefail
@@ -77,8 +66,6 @@ jobs:
           version_file = Path("src/eleanity/version.py")
           source = version_file.read_text(encoding="utf-8")
           updated, count = re.subn(
-              # Keep the line ending: Ruff requires the generated module to
-              # retain its final newline.
               r'(?m)^__version__[ \t]*=[ \t]*"[^"]+"[ \t]*$',
               f'__version__ = "{version}"',
               source,
@@ -86,14 +73,66 @@ jobs:
           if count != 1:
               raise SystemExit("Expected exactly one __version__ assignment in src/eleanity/version.py")
           version_file.write_text(updated, encoding="utf-8")
-
           Path(".release-version").write_text(version + "\n", encoding="utf-8")
           PY
           echo "version=$(cat .release-version)" >> "$GITHUB_OUTPUT"
-          echo "tag=v$(cat .release-version)" >> "$GITHUB_OUTPUT"
 
-      - name: Verify and build the release candidate
-        if: steps.source.outputs.release == 'true'
+      - name: Create and auto-merge the release PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          branch="release/v${VERSION}"
+          existing="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')"
+          if [ -n "$existing" ]; then
+            echo "Release PR already open: $existing"
+            exit 0
+          fi
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "::error::Release branch $branch already exists without an open PR. Resolve it before retrying."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add pyproject.toml src/eleanity/version.py
+          git commit -m "chore(release): v${VERSION} [skip auto-release]"
+          git push origin "HEAD:refs/heads/$branch"
+          pr_url="$(gh pr create --base main --head "$branch" --title "chore(release): v${VERSION} [skip auto-release]" --body "Automated patch release. Required checks must pass before merge.")"
+          gh pr merge "$pr_url" --auto --squash
+
+  publish-release:
+    if: ${{ contains(github.event.head_commit.message, '[skip auto-release]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Resolve version and require an unpublished tag
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' pyproject.toml)"
+          test -n "$version"
+          tag="v${version}"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::error::Refusing to overwrite existing tag $tag"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Verify and build the release
         run: |
           set -euo pipefail
           uv sync --group dev
@@ -101,18 +140,19 @@ jobs:
           uv run ruff format --check src tests
           uv run pytest -q
           uv build
+          cd dist
+          sha256sum * > SHA256SUMS
 
       - name: Verify package metadata
-        if: steps.source.outputs.release == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           python - <<'PY'
+          import os
           import re
           import zipfile
           from pathlib import Path
-          import os
 
           expected = os.environ["VERSION"]
           wheels = list(Path("dist").glob("*.whl"))
@@ -122,41 +162,21 @@ jobs:
           assert sdists[0].name.startswith(f"eleanity-{expected}"), sdists[0].name
           with zipfile.ZipFile(wheels[0]) as wheel:
               metadata = next(name for name in wheel.namelist() if name.endswith("METADATA"))
-              text = wheel.read(metadata).decode("utf-8")
-          actual = re.search(r"(?m)^Version:\s*(.+)$", text)
+              actual = re.search(r"(?m)^Version:\s*(.+)$", wheel.read(metadata).decode("utf-8"))
           assert actual and actual.group(1).strip() == expected, actual
-          print(f"Verified wheel and sdist metadata for {expected}")
           PY
-          cd dist
-          sha256sum * > SHA256SUMS
-
-      - name: Commit the release version
-        if: steps.source.outputs.release == 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml src/eleanity/version.py
-          git commit -m "chore(release): v${VERSION} [skip auto-release]"
-          git push origin HEAD:main
 
       - name: Create immutable tag
-        if: steps.source.outputs.release == 'true'
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Refusing to overwrite existing tag $TAG"
-            exit 1
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "Eleanity $TAG"
           git push origin "$TAG"
 
       - name: Publish to PyPI
-        if: steps.source.outputs.release == 'true'
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
@@ -168,14 +188,9 @@ jobs:
           uv publish --token "$UV_PUBLISH_TOKEN"
 
       - name: Create GitHub prerelease
-        if: steps.source.outputs.release == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT || github.token }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          set -euo pipefail
-          gh release create "$TAG" dist/* \
-            --title "v${VERSION}" \
-            --prerelease \
-            --generate-notes
+          gh release create "$TAG" dist/* --title "v${VERSION}" --prerelease --generate-notes
