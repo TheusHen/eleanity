@@ -1,12 +1,24 @@
 from eleanity.comparators.diff import compare_json, compare_prompt, compare_tokens
 from eleanity.models.schemas import (
-    ArtifactFingerprint, LayerObservation, LayerState, ObservationTrace,
-    ParityProfile, ParityResult, Scenario,
+    ArtifactFingerprint,
+    LayerObservation,
+    LayerState,
+    ObservationTrace,
+    ParityProfile,
+    ParityResult,
+    Scenario,
 )
 
 
 def scenario():
-    return Scenario.model_validate({"name": "x", "messages": [{"role": "user", "content": "oi"}], "parameters": {"max_tokens": 3}, "observe": ["template", "tokens"]})
+    return Scenario.model_validate(
+        {
+            "name": "x",
+            "messages": [{"role": "user", "content": "oi"}],
+            "parameters": {"max_tokens": 3},
+            "observe": ["template", "tokens"],
+        }
+    )
 
 
 def test_scenario_sets_profile_tolerance_and_schema():
@@ -17,7 +29,13 @@ def test_scenario_sets_profile_tolerance_and_schema():
 
 
 def test_trace_serializes_layer_state():
-    trace = ObservationTrace(trace_id="t", scenario_name="x", backend="fake", artifact_fingerprint=ArtifactFingerprint(model_ref="m"), layers={"template": LayerObservation(state=LayerState.OBSERVED, data={"text": "hi"})})
+    trace = ObservationTrace(
+        trace_id="t",
+        scenario_name="x",
+        backend="fake",
+        artifact_fingerprint=ArtifactFingerprint(model_ref="m"),
+        layers={"template": LayerObservation(state=LayerState.OBSERVED, data={"text": "hi"})},
+    )
     assert trace.layers["template"].state == LayerState.OBSERVED
     assert trace.model_dump(mode="json")["trace_version"] == "0"
 

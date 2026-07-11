@@ -96,16 +96,10 @@ def compute_coverage(
         else (
             str(policy)
             if policy
-            else (
-                scenario.parity_profile.value
-                if scenario is not None
-                else ParityProfile.STRICT.value
-            )
+            else (scenario.parity_profile.value if scenario is not None else ParityProfile.STRICT.value)
         )
     )
-    requested = list(scenario.observe) if scenario is not None else list(
-        set(left.layers) | set(right.layers)
-    )
+    requested = list(scenario.observe) if scenario is not None else list(set(left.layers) | set(right.layers))
     required = policy_required_layers(policy_name)
     # Union for reporting
     all_layers: list[str] = []
@@ -249,11 +243,7 @@ def apply_coverage_to_status(
     meets = bool(coverage.get("meets_min_coverage"))
     cov_pct = coverage.get("required_coverage_percent")
     min_pct = coverage.get("min_coverage_percent")
-    missing = [
-        item["layer"]
-        for item in (coverage.get("not_verified_layers") or [])
-        if item.get("required")
-    ]
+    missing = [item["layer"] for item in (coverage.get("not_verified_layers") or []) if item.get("required")]
     if status in {ParityResult.PASS, ParityResult.PASS_WITH_TOLERANCE, ParityResult.PASS_WITH_LIMITED_COVERAGE}:
         if not meets:
             reasons.append(
@@ -265,9 +255,7 @@ def apply_coverage_to_status(
                 return ParityResult.INCONCLUSIVE, reasons
             return ParityResult.PASS_WITH_LIMITED_COVERAGE, reasons
         if missing and status == ParityResult.PASS:
-            reasons.append(
-                f"Some required layers were not verified on both backends: {', '.join(missing)}."
-            )
+            reasons.append(f"Some required layers were not verified on both backends: {', '.join(missing)}.")
             return ParityResult.PASS_WITH_LIMITED_COVERAGE, reasons
     return status, reasons
 
@@ -289,9 +277,7 @@ def practical_commands_for(
     if run_id:
         cmds.append(f"eleanity report {run_id} --format text")
         cmds.append(f"eleanity replay {run_id}")
-    cmds.append(
-        f"eleanity compare --model {model} --backends {be} --policy quantized --format text"
-    )
+    cmds.append(f"eleanity compare --model {model} --backends {be} --policy quantized --format text")
     if first_divergence in {"template", "tokens", "special_tokens"}:
         cmds.append(
             f"eleanity compare --model {model} --backends {be} --tokenizer-only "
@@ -301,9 +287,7 @@ def practical_commands_for(
         cmds.append(f"eleanity inspect {model} --backend transformers --format json")
     if value in {ParityResult.PASS_WITH_LIMITED_COVERAGE.value, ParityResult.INCONCLUSIVE.value}:
         cmds.append("eleanity doctor --check-backends --format text")
-        cmds.append(
-            "eleanity policy-spec --policy quantized  # required layers + comparator thresholds"
-        )
+        cmds.append("eleanity policy-spec --policy quantized  # required layers + comparator thresholds")
     if value == ParityResult.DIVERGENT.value:
         cmds.append(
             f"eleanity stabilize --backend {backends[0] if backends else 'transformers'} "
@@ -338,9 +322,7 @@ def format_timings(timings: dict[str, float] | None) -> dict[str, Any]:
         "total_ms": round(sum(timings.values()), 2),
         "delta_percent": delta_percent,
         "delta_label": (
-            f"{keys[1]} is {delta_percent:+.1f}% vs {keys[0]}"
-            if delta_percent is not None and len(keys) >= 2
-            else None
+            f"{keys[1]} is {delta_percent:+.1f}% vs {keys[0]}" if delta_percent is not None and len(keys) >= 2 else None
         ),
     }
 

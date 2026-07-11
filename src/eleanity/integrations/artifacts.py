@@ -16,8 +16,7 @@ class ArtifactSink(ABC):
     """Sink for run artifacts. Implementations must not upload raw prompts by default."""
 
     @abstractmethod
-    def publish(self, run_dir: Path, *, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
-        ...
+    def publish(self, run_dir: Path, *, metadata: dict[str, Any] | None = None) -> dict[str, Any]: ...
 
 
 class LocalArtifactSink(ArtifactSink):

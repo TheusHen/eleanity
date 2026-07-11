@@ -67,9 +67,7 @@ class CompareEngine:
         if parallel is False:
             self.parallel = False
         self.tokenizer_only = tokenizer_only or (project.tokenizer_only if project else False)
-        self.backend_profiles = backend_profiles or (
-            project.backend_profiles if project else {}
-        )
+        self.backend_profiles = backend_profiles or (project.backend_profiles if project else {})
         self.gates = gates if gates is not None else (project.gates if project else [])
 
     def compare(
@@ -94,9 +92,7 @@ class CompareEngine:
         if tok_only:
             # Cheap CI path: drop weight-heavy layers from observe if present
             light = [
-                layer
-                for layer in scenario.observe
-                if layer not in {"logits", "generation", "structured", "streaming"}
+                layer for layer in scenario.observe if layer not in {"logits", "generation", "structured", "streaming"}
             ]
             if "template" not in light:
                 light.append("template")
@@ -105,14 +101,10 @@ class CompareEngine:
             scenario = scenario.model_copy(update={"observe": light})
             if scenario.model:
                 scenario = scenario.model_copy(
-                    update={
-                        "model": scenario.model.model_copy(update={"tokenizer_only": True})
-                    }
+                    update={"model": scenario.model.model_copy(update={"tokenizer_only": True})}
                 )
             else:
-                scenario = scenario.model_copy(
-                    update={"model": ModelSpec(id=model, tokenizer_only=True)}
-                )
+                scenario = scenario.model_copy(update={"model": ModelSpec(id=model, tokenizer_only=True)})
 
         if redact_prompts or (self.project and self.project.redact_prompts):
             scenario = scenario.model_copy(update={"redact_prompts": True})
@@ -175,17 +167,11 @@ class CompareEngine:
             first_divergence=diagnosis.first_divergence,
             left=traces[0] if traces else None,
             right=traces[1] if len(traces) > 1 else None,
-            comparisons=(
-                next(iter(comparisons.values()), {}) if comparisons else {}
-            ),
+            comparisons=(next(iter(comparisons.values()), {}) if comparisons else {}),
         )
         diagnosis = diagnosis.model_copy(
             update={
-                "formal_status": (
-                    diagnosis.status.value
-                    if hasattr(diagnosis.status, "value")
-                    else formal.value
-                ),
+                "formal_status": (diagnosis.status.value if hasattr(diagnosis.status, "value") else formal.value),
                 "impact": impact.to_dict(),
                 "policy_comparators": policy_comparator_set(scenario.parity_profile).to_dict(),
             }
@@ -261,9 +247,7 @@ class CompareEngine:
             "scenario": scenario.model_dump(mode="json", exclude={"messages"}),
             "environment": env_fp.model_dump(mode="json"),
             "traces": [trace.model_dump(mode="json") for trace in traces],
-            "execution_capsules": {
-                name: cap.model_dump(mode="json") for name, cap in capsules.items()
-            },
+            "execution_capsules": {name: cap.model_dump(mode="json") for name, cap in capsules.items()},
             "comparisons": comparisons,
             "consensus": consensus,
             "diagnosis": diagnosis.model_dump(mode="json"),
@@ -276,9 +260,7 @@ class CompareEngine:
             "confidence": diagnosis.confidence,
             "timings": timing_report,
             "parity": {
-                "status": diagnosis.status.value
-                if hasattr(diagnosis.status, "value")
-                else str(diagnosis.status),
+                "status": diagnosis.status.value if hasattr(diagnosis.status, "value") else str(diagnosis.status),
                 "legacy_status": diagnosis.status.value
                 if hasattr(diagnosis.status, "value")
                 else str(diagnosis.status),
@@ -306,9 +288,7 @@ class CompareEngine:
             "capabilities": self._capability_map(ordered, model, scenario, tok_only),
         }
 
-        path = write_result_json(
-            target, payload, redact_prompts=scenario.redact_prompts
-        )
+        path = write_result_json(target, payload, redact_prompts=scenario.redact_prompts)
         # Trace Spec v1 product document alongside result.json
         try:
             trace_doc = build_trace_document(
@@ -328,8 +308,7 @@ class CompareEngine:
 
         # index line for quick listing
         (target / "summary.txt").write_text(
-            f"{run_id}\t{getattr(diagnosis, 'status', None)}\t"
-            f"{scenario.name}\t{model}\t{','.join(ordered)}\n",
+            f"{run_id}\t{getattr(diagnosis, 'status', None)}\t{scenario.name}\t{model}\t{','.join(ordered)}\n",
             encoding="utf-8",
         )
 
@@ -416,15 +395,8 @@ class CompareEngine:
         engine = PolicyEngine(scenario)
         comparisons = engine.compare_layers(baseline, candidate)
         diagnosis = diagnose([baseline, candidate])
-        cmp_map = {
-            backend: {
-                layer: comparison.model_dump(mode="json")
-                for layer, comparison in comparisons.items()
-            }
-        }
-        gate_eval = evaluate_gates(
-            self.gates, cmp_map, diagnosis_status=getattr(diagnosis, "status", None)
-        )
+        cmp_map = {backend: {layer: comparison.model_dump(mode="json") for layer, comparison in comparisons.items()}}
+        gate_eval = evaluate_gates(self.gates, cmp_map, diagnosis_status=getattr(diagnosis, "status", None))
         run_id = str(uuid4())
         target = self.runs_dir / run_id
         path = write_result_json(
@@ -456,8 +428,7 @@ class CompareEngine:
                     ],
                 },
                 "reproduction_command": (
-                    f"eleanity ci --baseline {baseline_model} --candidate {candidate_model} "
-                    f"--backend {backend}"
+                    f"eleanity ci --baseline {baseline_model} --candidate {candidate_model} --backend {backend}"
                 ),
             },
         )
@@ -487,7 +458,7 @@ class CompareEngine:
     def _make_adapter(self, name: str, model: str, scenario: Scenario, tokenizer_only: bool):
         profile = self.backend_profiles.get(name)
         adapter_name = profile.adapter if profile else name
-        model_id = (profile.model if profile and profile.model else model)
+        model_id = profile.model if profile and profile.model else model
         kwargs = self._profile_kwargs(name)
         return adapter_for(
             adapter_name,

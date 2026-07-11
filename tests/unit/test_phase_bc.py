@@ -1,4 +1,3 @@
-import json
 import struct
 from pathlib import Path
 
@@ -10,10 +9,10 @@ from eleanity.comparators.structured import build_structured_observation, compar
 from eleanity.core.batch_report import run_multi_model_batch
 from eleanity.core.engine import CompareEngine
 from eleanity.core.golden import golden_gate, save_golden
+from eleanity.core.observe import observe
 from eleanity.fingerprints.gguf import inspect_gguf
 from eleanity.integrations.artifacts import LocalArtifactSink
-from eleanity.models.schemas import LayerState, ObservationTrace, ParityResult, Scenario
-from eleanity.core.observe import observe
+from eleanity.models.schemas import ParityResult, Scenario
 
 
 def test_json_schema_validation():
@@ -30,15 +29,11 @@ def test_json_schema_validation():
 
 def test_structured_tool_argument_diff():
     left = {
-        "tool_calls": [
-            {"function": {"name": "get_weather", "arguments": '{"city":"SP"}'}}
-        ],
+        "tool_calls": [{"function": {"name": "get_weather", "arguments": '{"city":"SP"}'}}],
         "stop_reason": "tool_calls",
     }
     right = {
-        "tool_calls": [
-            {"function": {"name": "get_weather", "arguments": '{"city":"RJ"}'}}
-        ],
+        "tool_calls": [{"function": {"name": "get_weather", "arguments": '{"city":"RJ"}'}}],
         "stop_reason": "tool_calls",
     }
     result = compare_structured(left, right)

@@ -1,4 +1,5 @@
 from typer.testing import CliRunner
+
 from eleanity.cli.app import app
 
 

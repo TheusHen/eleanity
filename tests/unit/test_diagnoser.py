@@ -3,7 +3,17 @@ from eleanity.models.schemas import ArtifactFingerprint, LayerObservation, Layer
 
 
 def trace(name, template, tokens):
-    return ObservationTrace(trace_id=name, scenario_name="demo", backend=name, artifact_fingerprint=ArtifactFingerprint(model_ref="m"), layers={"artifact": LayerObservation(state=LayerState.OBSERVED, data={"model_ref": "m"}), "template": LayerObservation(state=LayerState.OBSERVED, data={"text": template}), "tokens": LayerObservation(state=LayerState.OBSERVED, data={"ids": tokens})})
+    return ObservationTrace(
+        trace_id=name,
+        scenario_name="demo",
+        backend=name,
+        artifact_fingerprint=ArtifactFingerprint(model_ref="m"),
+        layers={
+            "artifact": LayerObservation(state=LayerState.OBSERVED, data={"model_ref": "m"}),
+            "template": LayerObservation(state=LayerState.OBSERVED, data={"text": template}),
+            "tokens": LayerObservation(state=LayerState.OBSERVED, data={"ids": tokens}),
+        },
+    )
 
 
 def test_diagnoser_finds_template_before_tokens():

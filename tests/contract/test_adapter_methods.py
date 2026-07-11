@@ -5,7 +5,12 @@ from eleanity.adapters.llamacpp_adapter import LlamaCppAdapter
 from eleanity.adapters.vllm_adapter import VLLMAdapter
 from eleanity.models.schemas import LayerState, Scenario
 
-SCENARIO = Scenario(name="contract", messages=[{"role": "user", "content": "hello"}], parameters={"max_tokens": 1}, observe=["template", "tokens", "logits", "generation"])
+SCENARIO = Scenario(
+    name="contract",
+    messages=[{"role": "user", "content": "hello"}],
+    parameters={"max_tokens": 1},
+    observe=["template", "tokens", "logits", "generation"],
+)
 
 
 @pytest.mark.parametrize("adapter", [FakeAdapter(), VLLMAdapter("demo"), LlamaCppAdapter("demo.gguf")])

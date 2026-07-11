@@ -50,9 +50,7 @@ def test_numerical_thresholds_pass_with_tolerance():
     from eleanity.spec.parity import ComparatorSpec
 
     spec = ComparatorSpec(mode="numerical", atol=1e-3, rtol=1e-2, top_k_agreement=0.99)
-    status = apply_numerical_thresholds(
-        max_abs_diff=5e-4, max_rel_diff=1e-3, top_k_agreement=0.995, spec=spec
-    )
+    status = apply_numerical_thresholds(max_abs_diff=5e-4, max_rel_diff=1e-3, top_k_agreement=0.995, spec=spec)
     assert status == FormalParityStatus.PASS_WITH_TOLERANCE
 
 
@@ -70,15 +68,15 @@ def test_legacy_status_mapping():
 
 
 def test_observability_never_pass_on_missing():
-    assert comparison_outcome_for_states(
-        ObservationState.NOT_EXPOSED, ObservationState.OBSERVED
-    ) == FormalParityStatus.INCONCLUSIVE
-    assert comparison_outcome_for_states(
-        ObservationState.UNSUPPORTED, ObservationState.OBSERVED
-    ) == FormalParityStatus.UNSUPPORTED
-    assert comparison_outcome_for_states(
-        ObservationState.OBSERVED, ObservationState.OBSERVED
-    ) is None
+    assert (
+        comparison_outcome_for_states(ObservationState.NOT_EXPOSED, ObservationState.OBSERVED)
+        == FormalParityStatus.INCONCLUSIVE
+    )
+    assert (
+        comparison_outcome_for_states(ObservationState.UNSUPPORTED, ObservationState.OBSERVED)
+        == FormalParityStatus.UNSUPPORTED
+    )
+    assert comparison_outcome_for_states(ObservationState.OBSERVED, ObservationState.OBSERVED) is None
     assert "Never treat" in honesty_rule()
 
 

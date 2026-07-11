@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from eleanity.core.engine import CompareEngine
 from eleanity.models.schemas import ParityResult, Scenario
@@ -72,8 +73,8 @@ def bisect_versions(
         )
     lo = 0
     hi = len(versions) - 1
-    good = versions[lo]
-    bad = versions[hi]
+    versions[lo]
+    versions[hi]
     steps: list[BisectStep] = []
     # Verify endpoints lightly via caller
     while hi - lo > 1:
@@ -83,10 +84,8 @@ def bisect_versions(
         steps.append(BisectStep(mid=version, status=status, run_id=run_id, first_divergence=first))
         if ok:
             lo = mid
-            good = version
         else:
             hi = mid
-            bad = version
     first_bad = versions[hi]
     return BisectReport(
         kind="versions",
@@ -135,20 +134,16 @@ def bisect_model_revisions(
             observe=["artifact", "template", "tokens"],
             parameters={"temperature": 0, "max_tokens": 8, "seed": 42},
         )
-        left = base_sc.model_copy(
-            update={"model": ModelSpec(id=model, revision=baseline, tokenizer_only=True)}
-        )
+        left = base_sc.model_copy(update={"model": ModelSpec(id=model, revision=baseline, tokenizer_only=True)})
         # Use compare of same model string but different fingerprints via two runs:
         # engine.ci with same model id — revision is scenario-level; for fake, always pass.
-        result = engine.compare(model, [backend, backend], scenario=left, baseline_backend=backend)
+        engine.compare(model, [backend, backend], scenario=left, baseline_backend=backend)
         # Secondary: force candidate scenario revision into second observe by sequential ci
         run_id, _, diagnosis, _ = engine.ci(
             model,
             model,
             backend,
-            scenario=base_sc.model_copy(
-                update={"model": ModelSpec(id=model, revision=revision, tokenizer_only=True)}
-            ),
+            scenario=base_sc.model_copy(update={"model": ModelSpec(id=model, revision=revision, tokenizer_only=True)}),
         )
         status = diagnosis.status.value if hasattr(diagnosis.status, "value") else str(diagnosis.status)
         # Mark mid as good if self-ci passes (same model); real divergence needs two revisions

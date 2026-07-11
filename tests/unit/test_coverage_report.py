@@ -13,7 +13,6 @@ from eleanity.core.coverage import (
     policy_required_layers,
 )
 from eleanity.core.engine import CompareEngine
-from eleanity.core.enrich import enrich_diagnosis
 from eleanity.diagnosers import diagnose
 from eleanity.models.schemas import (
     ArtifactFingerprint,
@@ -41,21 +40,12 @@ def test_policy_required_layers():
 
 
 def test_classify_unobserved_states():
-    assert (
-        classify_unobserved(requested=False, left=None, right=None)
-        == ParityResult.NOT_REQUESTED
-    )
+    assert classify_unobserved(requested=False, left=None, right=None) == ParityResult.NOT_REQUESTED
     left = LayerObservation(state=LayerState.NOT_SUPPORTED, note="nope")
     right = LayerObservation(state=LayerState.OBSERVED, data={})
-    assert (
-        classify_unobserved(requested=True, left=left, right=right)
-        == ParityResult.NOT_SUPPORTED
-    )
+    assert classify_unobserved(requested=True, left=left, right=right) == ParityResult.NOT_SUPPORTED
     left = LayerObservation(state=LayerState.NOT_EXPOSED, note="http")
-    assert (
-        classify_unobserved(requested=True, left=left, right=right)
-        == ParityResult.NOT_OBSERVABLE
-    )
+    assert classify_unobserved(requested=True, left=left, right=right) == ParityResult.NOT_OBSERVABLE
 
 
 def test_pass_with_limited_coverage_when_required_missing():
@@ -63,18 +53,14 @@ def test_pass_with_limited_coverage_when_required_missing():
         "a",
         {
             "artifact": LayerObservation(state=LayerState.OBSERVED, data={"model_ref": "x"}),
-            "generation": LayerObservation(
-                state=LayerState.OBSERVED, data={"text": "hi", "ids": [1]}
-            ),
+            "generation": LayerObservation(state=LayerState.OBSERVED, data={"text": "hi", "ids": [1]}),
         },
     )
     right = _trace(
         "b",
         {
             "artifact": LayerObservation(state=LayerState.OBSERVED, data={"model_ref": "x"}),
-            "generation": LayerObservation(
-                state=LayerState.OBSERVED, data={"text": "hi", "ids": [1]}
-            ),
+            "generation": LayerObservation(state=LayerState.OBSERVED, data={"text": "hi", "ids": [1]}),
             "template": LayerObservation(state=LayerState.NOT_EXPOSED, note="no template"),
         },
     )
@@ -126,18 +112,14 @@ def test_policy_engine_separates_observation_from_compare():
         "a",
         {
             "template": LayerObservation(state=LayerState.NOT_EXPOSED, note="hidden"),
-            "generation": LayerObservation(
-                state=LayerState.OBSERVED, data={"text": "ok", "stop_reason": "stop"}
-            ),
+            "generation": LayerObservation(state=LayerState.OBSERVED, data={"text": "ok", "stop_reason": "stop"}),
         },
     )
     right = _trace(
         "b",
         {
             "template": LayerObservation(state=LayerState.NOT_SUPPORTED, note="n/a"),
-            "generation": LayerObservation(
-                state=LayerState.OBSERVED, data={"text": "ok", "stop_reason": "stop"}
-            ),
+            "generation": LayerObservation(state=LayerState.OBSERVED, data={"text": "ok", "stop_reason": "stop"}),
         },
     )
     eng = PolicyEngine(sc)
@@ -146,9 +128,7 @@ def test_policy_engine_separates_observation_from_compare():
     assert cmp_t.result == ParityResult.NOT_REQUESTED
     assert cmp_t.baseline_state == LayerState.NOT_EXPOSED
     # generation compared
-    cmp_g = eng.compare_layer(
-        "generation", left.layers["generation"], right.layers["generation"]
-    )
+    cmp_g = eng.compare_layer("generation", left.layers["generation"], right.layers["generation"])
     assert cmp_g.result in {ParityResult.PASS, ParityResult.PASS_WITH_TOLERANCE}
 
 

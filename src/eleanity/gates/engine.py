@@ -4,9 +4,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from eleanity.config.project import GateRule
-from eleanity.core.coverage import POLICY_MIN_COVERAGE, policy_min_coverage
+from eleanity.core.coverage import policy_min_coverage
 from eleanity.models.schemas import ParityResult
-
 
 STATUS_RANK = {
     ParityResult.PASS: 0,
@@ -89,8 +88,7 @@ def evaluate_gates(
                 status=ParityResult.PASS if ok_cov else ParityResult.PASS_WITH_LIMITED_COVERAGE,
                 message=(
                     f"required-layer coverage {cov_pct}% "
-                    f"(min {threshold * 100:.0f}%)"
-                    + ("" if ok_cov else " — below minimum")
+                    f"(min {threshold * 100:.0f}%)" + ("" if ok_cov else " — below minimum")
                 ),
             )
         )
@@ -156,10 +154,14 @@ def evaluate_gates(
                 if status in allowed:
                     continue
                 # Limited coverage / not requested do not fail soft gates by default
-                if status in {
-                    ParityResult.NOT_REQUESTED,
-                    ParityResult.PASS_WITH_LIMITED_COVERAGE,
-                } and not gate.required:
+                if (
+                    status
+                    in {
+                        ParityResult.NOT_REQUESTED,
+                        ParityResult.PASS_WITH_LIMITED_COVERAGE,
+                    }
+                    and not gate.required
+                ):
                     continue
                 if STATUS_RANK.get(status, 99) > max_rank:
                     gate_ok = False
@@ -170,10 +172,7 @@ def evaluate_gates(
                             layer=layer,
                             backend=backend,
                             status=status,
-                            message=(
-                                f"{backend}/{layer}={status.value} exceeds max_status="
-                                f"{gate.max_status.value}"
-                            ),
+                            message=(f"{backend}/{layer}={status.value} exceeds max_status={gate.max_status.value}"),
                         )
                     )
         if gate_ok:
@@ -188,8 +187,6 @@ def evaluate_gates(
     passed = all(r.passed for r in results)
     failed = [r for r in results if not r.passed]
     summary = (
-        "all gates passed"
-        if passed
-        else f"{len(failed)} gate failure(s): " + "; ".join(r.message for r in failed[:5])
+        "all gates passed" if passed else f"{len(failed)} gate failure(s): " + "; ".join(r.message for r in failed[:5])
     )
     return GateEvaluation(passed=passed, results=results, summary=summary)

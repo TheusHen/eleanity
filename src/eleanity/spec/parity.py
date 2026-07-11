@@ -7,13 +7,13 @@ comparator mode accepts the measured drift under explicit numeric thresholds.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from eleanity.models.schemas import ParityProfile, ParityResult
 
 
-class FormalParityStatus(str, Enum):
+class FormalParityStatus(StrEnum):
     """Operational meanings of comparison outcomes (Trace Spec v1)."""
 
     PASS = "PASS"
@@ -282,8 +282,10 @@ def apply_numerical_thresholds(
     if spec.top_k_agreement is not None and top_k_agreement is not None:
         within_topk = top_k_agreement + 1e-12 >= spec.top_k_agreement
     if within_abs and within_rel and within_topk:
-        if (max_abs_diff or 0) > 0 or (max_rel_diff or 0) > 0 or (
-            top_k_agreement is not None and top_k_agreement < 1.0
+        if (
+            (max_abs_diff or 0) > 0
+            or (max_rel_diff or 0) > 0
+            or (top_k_agreement is not None and top_k_agreement < 1.0)
         ):
             return FormalParityStatus.PASS_WITH_TOLERANCE
         return FormalParityStatus.PASS
@@ -298,7 +300,11 @@ def apply_prefix_thresholds(
 ) -> FormalParityStatus:
     need = spec.exact_prefix_tokens or 0
     if need <= 0:
-        return FormalParityStatus.PASS if left_len == right_len and equal_prefix == left_len else FormalParityStatus.DIVERGENT
+        return (
+            FormalParityStatus.PASS
+            if left_len == right_len and equal_prefix == left_len
+            else FormalParityStatus.DIVERGENT
+        )
     if equal_prefix >= need:
         if left_len == right_len and equal_prefix == left_len:
             return FormalParityStatus.PASS

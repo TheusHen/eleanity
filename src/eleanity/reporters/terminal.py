@@ -9,7 +9,7 @@ from rich.text import Text
 
 from eleanity import __version__
 from eleanity.core.coverage import format_timings
-from eleanity.models.schemas import LAYER_ORDER, LayerState, ParityResult
+from eleanity.models.schemas import LAYER_ORDER
 
 
 def _status_style(status: str) -> str:
@@ -50,12 +50,8 @@ def print_terminal(
 
     baseline = traces[0] if traces else None
     candidate = traces[1] if len(traces) > 1 else None
-    scenario_name = scenario.name if scenario is not None else (
-        baseline.scenario_name if baseline else "—"
-    )
-    model_ref = model or (
-        baseline.artifact_fingerprint.model_ref if baseline else "—"
-    )
+    scenario_name = scenario.name if scenario is not None else (baseline.scenario_name if baseline else "—")
+    model_ref = model or (baseline.artifact_fingerprint.model_ref if baseline else "—")
     policy_name = policy or (
         getattr(scenario, "parity_profile", None).value
         if scenario is not None and getattr(scenario, "parity_profile", None)
@@ -118,16 +114,12 @@ def print_terminal(
             entry = cmp_map.get(layer) or {}
             if hasattr(entry, "result"):
                 result = entry.result.value
-                details = entry.details or {}
             else:
                 result = str(entry.get("result") or "—")
-                details = entry.get("details") or {}
+                entry.get("details") or {}
             lo = left.state.value if left else "—"
             ro = right.state.value if right else "—"
-            origin = (
-                f"{(left.origin if left else None) or '—'} → "
-                f"{(right.origin if right else None) or '—'}"
-            )
+            origin = f"{(left.origin if left else None) or '—'} → {(right.origin if right else None) or '—'}"
             layer_table.add_row(
                 layer,
                 Text(lo, style=_status_style(lo)),
@@ -152,9 +144,7 @@ def print_terminal(
 
     # Verified / Not verified
     verified = getattr(diagnosis, "verified_layers", None) or coverage.get("verified_layers") or []
-    not_verified = getattr(diagnosis, "not_verified_layers", None) or coverage.get(
-        "not_verified_layers"
-    ) or []
+    not_verified = getattr(diagnosis, "not_verified_layers", None) or coverage.get("not_verified_layers") or []
     console.print(Text("Verified", style="bold green"))
     console.print(f"  {', '.join(verified) if verified else '—'}")
     console.print()
@@ -182,8 +172,7 @@ def print_terminal(
     # Tolerance reasons
     tol = getattr(diagnosis, "tolerance_reasons", None) or []
     if tol or (
-        getattr(diagnosis, "status", None)
-        and getattr(diagnosis.status, "value", None) == "PASS_WITH_TOLERANCE"
+        getattr(diagnosis, "status", None) and getattr(diagnosis.status, "value", None) == "PASS_WITH_TOLERANCE"
     ):
         console.print(Text("Why PASS_WITH_TOLERANCE / limited coverage", style="bold"))
         if tol:
@@ -247,19 +236,14 @@ def print_terminal(
     if tinfo["entries"]:
         console.print(Text("Timings", style="bold"))
         for entry in tinfo["entries"]:
-            console.print(
-                f"  {entry['name']}: {entry['ms']:.1f} ms ({entry['share_percent']}%)"
-            )
+            console.print(f"  {entry['name']}: {entry['ms']:.1f} ms ({entry['share_percent']}%)")
         console.print(f"  total: {tinfo['total_ms']:.1f} ms")
         if tinfo.get("delta_label"):
             console.print(f"  delta: {tinfo['delta_label']}")
         console.print()
 
     if gate_evaluation is not None:
-        console.print(
-            f"[bold]Gates:[/bold] "
-            f"{'PASS' if gate_evaluation.passed else 'FAIL'} — {gate_evaluation.summary}"
-        )
+        console.print(f"[bold]Gates:[/bold] {'PASS' if gate_evaluation.passed else 'FAIL'} — {gate_evaluation.summary}")
         console.print()
 
     impact = getattr(diagnosis, "impact", None) or {}

@@ -3,12 +3,10 @@ from __future__ import annotations
 import importlib.util
 import os
 from dataclasses import dataclass
-from typing import Any
 
 from eleanity.adapters import adapter_for, available_adapters
 from eleanity.cli.errors import EleanityError, missing_dep, missing_url
 from eleanity.cli.resolve import ResolvedCompare
-
 
 HTTP_BACKENDS = {
     "vllm": "ELEANITY_VLLM_URL",

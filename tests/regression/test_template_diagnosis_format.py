@@ -17,10 +17,12 @@ def _trace(name, template, ids):
 
 
 def test_template_diagnosis_is_specific_and_numeric():
-    report = diagnose([
-        _trace("with-system", "<|im_start|>system\nYou help.<|im_end|>\n<|im_start|>user\nOi", [1, 2, 3, 4]),
-        _trace("without-system", "<|im_start|>user\nOi", [1, 9, 8, 7]),
-    ])
+    report = diagnose(
+        [
+            _trace("with-system", "<|im_start|>system\nYou help.<|im_end|>\n<|im_start|>user\nOi", [1, 2, 3, 4]),
+            _trace("without-system", "<|im_start|>user\nOi", [1, 9, 8, 7]),
+        ]
+    )
     assert report.first_divergence == "template"
     assert "character 12" in report.summary
     assert "from index 1" in report.summary

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from eleanity.core.engine import CompareEngine
-from eleanity.models.schemas import ObservationTrace, ParityResult, Scenario
+from eleanity.models.schemas import ParityResult, Scenario
 from eleanity.spec.parity import FormalParityStatus
 
 
@@ -136,12 +136,8 @@ def compare_with_stability(
         unique = [unique[0], unique[0]] if unique else ["fake", "fake"]
 
     a, b = unique[0], unique[1]
-    report_a = stabilize_backend(
-        engine, model, a, scenario=scenario, repetitions=repetitions, threshold=threshold
-    )
-    report_b = stabilize_backend(
-        engine, model, b, scenario=scenario, repetitions=repetitions, threshold=threshold
-    )
+    report_a = stabilize_backend(engine, model, a, scenario=scenario, repetitions=repetitions, threshold=threshold)
+    report_b = stabilize_backend(engine, model, b, scenario=scenario, repetitions=repetitions, threshold=threshold)
 
     attributable = report_a.self_consistent and report_b.self_consistent
     cross_result = None

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from hashlib import sha256
 from typing import Any
 from uuid import uuid4
@@ -9,14 +9,14 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, model_validator
 
 
-class ParityProfile(str, Enum):
+class ParityProfile(StrEnum):
     STRICT = "strict"
     QUANTIZED = "quantized"
     FUNCTIONAL = "functional"
     API_CONFORMANCE = "api_conformance"
 
 
-class ParityResult(str, Enum):
+class ParityResult(StrEnum):
     """Comparison outcomes only — never invent PASS when data is missing.
 
     Observation availability uses LayerState, not these values.
@@ -38,7 +38,7 @@ class ParityResult(str, Enum):
 ResultStatus = ParityResult
 
 
-class LayerState(str, Enum):
+class LayerState(StrEnum):
     """Observation availability of a layer on one backend (not a comparison result)."""
 
     OBSERVED = "OBSERVED"
@@ -161,7 +161,7 @@ class Scenario(BaseModel):
     comparators: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_values(self) -> "Scenario":
+    def validate_values(self) -> Scenario:
         if self.parity_policy is not None:
             self.parity_profile = self.parity_policy
         # Map fine-grained observe names onto coarse adapter pipeline layers
@@ -344,7 +344,7 @@ class ObservationTrace(BaseModel):
     layers: dict[str, LayerObservation]
     warnings: list[str] = Field(default_factory=list)
     errors: list[TraceError] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     duration_ms: float | None = None
 
 

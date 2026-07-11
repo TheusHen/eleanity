@@ -272,10 +272,7 @@ class OpenAICompatAdapter(BackendAdapter):
                     for line in response.iter_lines():
                         if not line:
                             continue
-                        if line.startswith("data:"):
-                            data_str = line[5:].strip()
-                        else:
-                            data_str = line.strip()
+                        data_str = line[5:].strip() if line.startswith("data:") else line.strip()
                         if data_str == "[DONE]":
                             event_types.append("done")
                             break

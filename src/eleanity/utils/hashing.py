@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import json
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
-import json
 
 
 def text_sha256(value: str | bytes | None) -> str | None:

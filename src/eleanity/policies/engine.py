@@ -32,9 +32,7 @@ class PolicyEngine:
         self.tolerance = float(scenario.tolerance or 0.0)
         self.rules = policy_rules(self.profile)
 
-    def compare_layers(
-        self, left: ObservationTrace, right: ObservationTrace
-    ) -> dict[str, Comparison]:
+    def compare_layers(self, left: ObservationTrace, right: ObservationTrace) -> dict[str, Comparison]:
         results: dict[str, Comparison] = {}
         for layer, a in left.layers.items():
             b = right.layers.get(layer)
@@ -52,12 +50,13 @@ class PolicyEngine:
         right: LayerObservation | None,
     ) -> Comparison:
         requested = layer in set(self.scenario.observe) or layer == "artifact"
-        if left is None or right is None or (
-            left is not None
-            and right is not None
-            and (
-                left.state != LayerState.OBSERVED
-                or right.state != LayerState.OBSERVED
+        if (
+            left is None
+            or right is None
+            or (
+                left is not None
+                and right is not None
+                and (left.state != LayerState.OBSERVED or right.state != LayerState.OBSERVED)
             )
         ):
             from eleanity.core.coverage import classify_unobserved
@@ -174,37 +173,28 @@ class PolicyEngine:
                     return Comparison(
                         result=ParityResult.PASS_WITH_TOLERANCE,
                         details=details,
-                        tolerance_reason=(
-                            "one backend omitted generated token ids; decoded text matches"
-                        ),
+                        tolerance_reason=("one backend omitted generated token ids; decoded text matches"),
                     )
                 return Comparison(result=text_cmp.result, details=details)
             if left_ids or right_ids:
                 cmp = compare_generation(left_ids, right_ids)
                 # Formal quantized policy: prefix mode with exact_prefix_tokens
-                if (
-                    self.profile == ParityProfile.QUANTIZED
-                    and cmp.result == ParityResult.DIVERGENT
-                ):
+                if self.profile == ParityProfile.QUANTIZED and cmp.result == ParityResult.DIVERGENT:
+                    from eleanity.spec.observability import legacy_parity_from_formal
                     from eleanity.spec.parity import (
                         FormalParityStatus,
                         apply_prefix_thresholds,
                         policy_comparator_set,
                     )
-                    from eleanity.spec.observability import legacy_parity_from_formal
 
-                    spec = policy_comparator_set(self.profile).comparators.get(
-                        "generated_token_ids"
-                    )
+                    spec = policy_comparator_set(self.profile).comparators.get("generated_token_ids")
                     if spec and spec.mode == "prefix":
                         equal_prefix = 0
-                        for a, b in zip(left_ids, right_ids):
+                        for a, b in zip(left_ids, right_ids, strict=False):
                             if a != b:
                                 break
                             equal_prefix += 1
-                        formal = apply_prefix_thresholds(
-                            equal_prefix, len(left_ids), len(right_ids), spec
-                        )
+                        formal = apply_prefix_thresholds(equal_prefix, len(left_ids), len(right_ids), spec)
                         if formal in {
                             FormalParityStatus.PASS,
                             FormalParityStatus.PASS_WITH_TOLERANCE,
@@ -303,7 +293,12 @@ class PolicyEngine:
             divergent = [k for k in keys if left_view.get(k) != right_view.get(k)]
             return Comparison(
                 result=ParityResult.DIVERGENT,
-                details={"divergent_keys": divergent, "divergent_fields": divergent, "left": left_view, "right": right_view},
+                details={
+                    "divergent_keys": divergent,
+                    "divergent_fields": divergent,
+                    "left": left_view,
+                    "right": right_view,
+                },
             )
         return Comparison(
             result=ParityResult.PASS if left == right else ParityResult.DIVERGENT,

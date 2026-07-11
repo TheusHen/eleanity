@@ -9,7 +9,6 @@ from typing import Any
 from eleanity.adapters import adapter_for
 from eleanity.certification import certify_runtime
 
-
 FEATURE_COLUMNS = (
     "tokens",
     "template",
@@ -62,9 +61,7 @@ def certify_row(model: str, runtime: str) -> dict[str, Any]:
 
 
 def render_matrix_markdown(rows: list[dict[str, Any]]) -> str:
-    headers = ["Model", "Runtime", "Status"] + [
-        f.replace("_", " ").title() for f in FEATURE_COLUMNS
-    ]
+    headers = ["Model", "Runtime", "Status"] + [f.replace("_", " ").title() for f in FEATURE_COLUMNS]
     lines = [
         "| " + " | ".join(headers) + " |",
         "| " + " | ".join(["---"] * len(headers)) + " |",

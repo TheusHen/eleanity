@@ -8,7 +8,7 @@ from rich.console import Console
 
 from eleanity import __version__
 from eleanity.cli.errors import EleanityError
-from eleanity.cli.exitcodes import EXIT_CONFIG, EXIT_DIVERGENT, EXIT_OK, exit_from_diagnosis
+from eleanity.cli.exitcodes import EXIT_CONFIG, exit_from_diagnosis
 from eleanity.reporters.terminal import print_terminal
 
 OutputFormat = Literal["text", "json", "quiet"]
@@ -130,15 +130,10 @@ def emit_compare_result(
     total_ms = sum(timings.values()) if timings else None
     baseline = traces[0].backend if traces else None
     candidate = traces[1].backend if traces and len(traces) > 1 else None
-    scenario_name = scenario.name if scenario is not None else (
-        traces[0].scenario_name if traces else None
-    )
+    scenario_name = scenario.name if scenario is not None else (traces[0].scenario_name if traces else None)
 
     impact_obj = getattr(diagnosis, "impact", None) or {}
-    if isinstance(impact_obj, dict):
-        impact_value = impact_obj.get("impact")
-    else:
-        impact_value = None
+    impact_value = impact_obj.get("impact") if isinstance(impact_obj, dict) else None
     formal = getattr(diagnosis, "formal_status", None) or status_value
 
     summary = canonical_summary(
@@ -160,14 +155,14 @@ def emit_compare_result(
 
     coverage = getattr(diagnosis, "coverage", None) or {}
     conf = getattr(diagnosis, "confidence", None)
-    reproduction = None
     # Prefer reproduction from first trace path is not available here — callers embed in diagnosis cmds
 
     if fmt == "json":
         from eleanity.core.coverage import format_timings
 
         payload = {
-            "ok": status_value in {
+            "ok": status_value
+            in {
                 "PASS",
                 "PASS_WITH_TOLERANCE",
                 "PASS_WITH_LIMITED_COVERAGE",

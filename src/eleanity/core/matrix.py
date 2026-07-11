@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from eleanity.models.schemas import Comparison, ObservationTrace, ParityResult, Scenario
+from eleanity.models.schemas import ObservationTrace, ParityResult, Scenario
 from eleanity.policies.engine import PolicyEngine
 
 
@@ -29,10 +29,7 @@ def build_pairwise_matrix(
         count = seen[trace.backend]
         key = trace.backend if count == 1 else f"{trace.backend}#{count}"
         comparisons = engine.compare_layers(baseline, trace)
-        matrix[key] = {
-            layer: comparison.model_dump(mode="json")
-            for layer, comparison in comparisons.items()
-        }
+        matrix[key] = {layer: comparison.model_dump(mode="json") for layer, comparison in comparisons.items()}
     return matrix
 
 

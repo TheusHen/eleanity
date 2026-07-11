@@ -29,12 +29,8 @@ def render_text_report(data: dict[str, Any], *, redact: bool = True) -> str:
     console.print(Text(f"Eleanity {__version__} · text report", style="bold"))
     console.print(f"run_id:     {data.get('run_id')}")
     console.print(f"run_type:   {data.get('run_type')}")
-    console.print(
-        f"scenario:   {scenario.get('name') or (traces[0].get('scenario_name') if traces else '—')}"
-    )
-    console.print(
-        f"policy:     {scenario.get('parity_profile') or scenario.get('parity_policy') or '—'}"
-    )
+    console.print(f"scenario:   {scenario.get('name') or (traces[0].get('scenario_name') if traces else '—')}")
+    console.print(f"policy:     {scenario.get('parity_profile') or scenario.get('parity_policy') or '—'}")
     console.print(f"baseline:   {data.get('baseline_backend') or '—'}")
     if data.get("baseline_model"):
         console.print(f"models:     {data.get('baseline_model')} → {data.get('candidate_model')}")
@@ -73,8 +69,7 @@ def render_text_report(data: dict[str, Any], *, redact: bool = True) -> str:
     if coverage:
         console.print(Text("Coverage", style="bold"))
         console.print(
-            f"  required:  {coverage.get('required_coverage_percent')}% "
-            f"(min {coverage.get('min_coverage_percent')}%)"
+            f"  required:  {coverage.get('required_coverage_percent')}% (min {coverage.get('min_coverage_percent')}%)"
         )
         console.print(f"  requested: {coverage.get('requested_coverage_percent')}%")
         console.print()
@@ -138,9 +133,7 @@ def render_text_report(data: dict[str, Any], *, redact: bool = True) -> str:
     if causes:
         console.print(Text("Probable causes", style="bold"))
         for cause in causes:
-            console.print(
-                f"  [{cause.get('code')}] conf={cause.get('confidence')} — {cause.get('message')}"
-            )
+            console.print(f"  [{cause.get('code')}] conf={cause.get('confidence')} — {cause.get('message')}")
             entry = get_playbook_entry(str(cause.get("code") or ""))
             if entry and entry.get("actions"):
                 for action in entry["actions"][:2]:
@@ -166,9 +159,7 @@ def render_text_report(data: dict[str, Any], *, redact: bool = True) -> str:
     if tinfo.get("entries"):
         console.print(Text("Timings", style="bold"))
         for entry in tinfo["entries"]:
-            console.print(
-                f"  {entry['name']}: {entry['ms']:.1f} ms ({entry['share_percent']}%)"
-            )
+            console.print(f"  {entry['name']}: {entry['ms']:.1f} ms ({entry['share_percent']}%)")
         console.print(f"  total: {tinfo.get('total_ms')} ms")
         if tinfo.get("delta_label"):
             console.print(f"  delta: {tinfo['delta_label']}")

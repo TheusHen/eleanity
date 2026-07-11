@@ -102,7 +102,7 @@ class ExecutionCapsule(BaseModel):
         raw = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-    def seal(self) -> "ExecutionCapsule":
+    def seal(self) -> ExecutionCapsule:
         self.capsule_hash = self.compute_hash()
         return self
 
@@ -160,7 +160,8 @@ def build_execution_capsule(
         commit=os.environ.get("ELEANITY_RUNTIME_COMMIT") or (fp.commit_sha if fp else None),
         container_digest=os.environ.get("ELEANITY_CONTAINER_DIGEST"),
         library_versions=libs,
-        python_version=(fp.python_version if fp else None) or (env.python_version if env else platform.python_version()),
+        python_version=(fp.python_version if fp else None)
+        or (env.python_version if env else platform.python_version()),
     )
 
     hardware = HardwareCapsule(
@@ -214,10 +215,22 @@ def build_execution_capsule(
         speculative_decoding=flags.get("speculative_decoding"),
         tokenizer_only=tokenizer_only,
         offline=os.environ.get("HF_HUB_OFFLINE") == "1",
-        extra={k: v for k, v in flags.items() if k not in {
-            "tensor_parallel", "tp", "pipeline_parallel", "pp", "batch_size",
-            "attention_backend", "attn_implementation", "prefix_cache", "speculative_decoding",
-        }},
+        extra={
+            k: v
+            for k, v in flags.items()
+            if k
+            not in {
+                "tensor_parallel",
+                "tp",
+                "pipeline_parallel",
+                "pp",
+                "batch_size",
+                "attention_backend",
+                "attn_implementation",
+                "prefix_cache",
+                "speculative_decoding",
+            }
+        },
     )
 
     priv = PrivacyCapsule(**(privacy or {}))

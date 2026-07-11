@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from eleanity.adapters.base import BackendAdapter, CapabilitySet, HealthcheckResult
 from eleanity.models.schemas import ArtifactFingerprint, LayerObservation, LayerState, Scenario
@@ -98,16 +99,22 @@ def check_adapter_compliance(
             else:
                 tokens = adapter.tokenize("hello")
                 _assert_observation(tokens, "tokenize", issues)
-            logits = adapter.forward(tokens if isinstance(tokens, LayerObservation) else LayerObservation(state=LayerState.NOT_OBSERVABLE))
+            logits = adapter.forward(
+                tokens if isinstance(tokens, LayerObservation) else LayerObservation(state=LayerState.NOT_OBSERVABLE)
+            )
             _assert_observation(logits, "forward", issues)
             gen = adapter.generate(scenario)
             _assert_observation(gen, "generate", issues)
             # Honesty: if capability is False, method should not claim OBSERVED without data
             if caps is not None:
                 if not getattr(caps, "logits", True) and logits.state == LayerState.OBSERVED and not logits.data:
-                    issues.append(ComplianceIssue("FALSE_LOGITS", "logits capability false but OBSERVED empty data", "warning"))
+                    issues.append(
+                        ComplianceIssue("FALSE_LOGITS", "logits capability false but OBSERVED empty data", "warning")
+                    )
                 if not getattr(caps, "generation", True) and gen.state == LayerState.OBSERVED and not gen.data:
-                    issues.append(ComplianceIssue("FALSE_GENERATION", "generation capability false but OBSERVED empty", "warning"))
+                    issues.append(
+                        ComplianceIssue("FALSE_GENERATION", "generation capability false but OBSERVED empty", "warning")
+                    )
         except Exception as error:
             issues.append(ComplianceIssue("RUNTIME_PROBE_ERROR", str(error), severity="warning"))
 
@@ -119,7 +126,11 @@ def check_adapter_compliance(
                 if method == "healthcheck":
                     result = fn()
                     if not isinstance(result, HealthcheckResult) and not hasattr(result, "ok"):
-                        issues.append(ComplianceIssue("HEALTHCHECK_TYPE", "healthcheck() should return HealthcheckResult-like", "warning"))
+                        issues.append(
+                            ComplianceIssue(
+                                "HEALTHCHECK_TYPE", "healthcheck() should return HealthcheckResult-like", "warning"
+                            )
+                        )
                 elif method == "special_tokens":
                     _assert_observation(fn(), method, issues)
                 else:

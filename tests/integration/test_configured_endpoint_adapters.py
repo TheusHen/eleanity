@@ -7,7 +7,6 @@ from eleanity.adapters.llamacpp_adapter import LlamaCppAdapter
 from eleanity.adapters.vllm_adapter import VLLMAdapter
 from eleanity.models.schemas import LayerState, Scenario
 
-
 SCENARIO = Scenario(
     name="endpoint",
     messages=[{"role": "user", "content": "Olá"}],

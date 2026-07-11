@@ -1,4 +1,3 @@
-from eleanity.adapters.fake import FakeAdapter
 from eleanity.adapters.transformers_adapter import TransformersAdapter
 from eleanity.core.engine import CompareEngine
 from eleanity.models.schemas import LayerState, ModelSpec, Scenario
@@ -13,9 +12,7 @@ def test_transformers_tokenizer_only_capabilities_without_weights():
     if adapter.capabilities.tokenize:
         assert adapter.capabilities.logits is False
         assert adapter.capabilities.generation is False
-        note = adapter.forward(
-            type("T", (), {"state": LayerState.OBSERVED, "data": {"ids": [1]}, "note": None})()
-        )
+        note = adapter.forward(type("T", (), {"state": LayerState.OBSERVED, "data": {"ids": [1]}, "note": None})())
         assert note.state == LayerState.NOT_OBSERVABLE
 
 

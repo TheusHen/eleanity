@@ -7,7 +7,7 @@ from eleanity.models.schemas import Comparison, ParityResult
 
 
 def _first(left: list[Any], right: list[Any]) -> int | None:
-    for index, (a, b) in enumerate(zip(left, right)):
+    for index, (a, b) in enumerate(zip(left, right, strict=False)):
         if a != b:
             return index
     return min(len(left), len(right)) if len(left) != len(right) else None
@@ -88,9 +88,9 @@ def compare_prompt(left: str, right: str) -> Comparison:
     left_nfd = unicodedata.normalize("NFD", left)
     right_nfd = unicodedata.normalize("NFD", right)
 
-    whitespace_only = left.replace(" ", "").replace("\t", "").replace("\r", "").replace(
-        "\n", ""
-    ) == right.replace(" ", "").replace("\t", "").replace("\r", "").replace("\n", "")
+    whitespace_only = left.replace(" ", "").replace("\t", "").replace("\r", "").replace("\n", "") == right.replace(
+        " ", ""
+    ).replace("\t", "").replace("\r", "").replace("\n", "")
     newline_diff = left.count("\n") != right.count("\n") or ("\r\n" in left) != ("\r\n" in right)
     unicode_norm_diff = (left != left_nfc or right != right_nfc) and left_nfc == right_nfc
 
@@ -108,9 +108,12 @@ def compare_prompt(left: str, right: str) -> Comparison:
     left_has_assistant = any(m in left for m in assistant_markers)
     right_has_assistant = any(m in right for m in assistant_markers)
     # Also treat trailing generation prompt without special tokens when baseline has markers.
-    if left_has_assistant and not right_has_assistant:
-        missing_assistant_turn = True
-    elif left.rstrip().endswith(("<|im_start|>assistant", "<|im_start|>assistant\n")) and not right_has_assistant:
+    if (
+        left_has_assistant
+        and not right_has_assistant
+        or left.rstrip().endswith(("<|im_start|>assistant", "<|im_start|>assistant\n"))
+        and not right_has_assistant
+    ):
         missing_assistant_turn = True
     else:
         missing_assistant_turn = False
@@ -162,12 +165,12 @@ def compare_tokens(
 
     # Equal prefix / suffix lengths
     prefix = 0
-    for a, b in zip(left, right):
+    for a, b in zip(left, right, strict=False):
         if a != b:
             break
         prefix += 1
     suffix = 0
-    for a, b in zip(reversed(left), reversed(right)):
+    for a, b in zip(reversed(left), reversed(right), strict=False):
         if a != b:
             break
         suffix += 1
@@ -202,28 +205,19 @@ def compare_tokens(
         )
 
     tail = max(len(left), len(right)) - index
-    different = sum(a != b for a, b in zip(left[index:], right[index:])) + abs(
-        len(left[index:]) - len(right[index:])
-    )
+    left_tail, right_tail = left[index:], right[index:]
+    different = sum(a != b for a, b in zip(left_tail, right_tail, strict=False)) + abs(len(left_tail) - len(right_tail))
     percent = round(different / tail * 100, 2) if tail else 0.0
 
     # Classify ops after first divergence (simple LCS-free heuristic)
     inserted = max(0, len(right) - len(left))
     removed = max(0, len(left) - len(right))
-    substituted = sum(1 for a, b in zip(left[index:], right[index:]) if a != b)
+    substituted = sum(1 for a, b in zip(left[index:], right[index:], strict=False) if a != b)
 
     expected_id = left[index] if index < len(left) else None
     received_id = right[index] if index < len(right) else None
-    expected_str = (
-        left_strings[index]
-        if left_strings is not None and index < len(left_strings)
-        else None
-    )
-    received_str = (
-        right_strings[index]
-        if right_strings is not None and index < len(right_strings)
-        else None
-    )
+    expected_str = left_strings[index] if left_strings is not None and index < len(left_strings) else None
+    received_str = right_strings[index] if right_strings is not None and index < len(right_strings) else None
 
     special_diff = _special_token_diff(left_special, right_special)
     left_trunc = bool((left_special or {}).get("truncated"))
@@ -253,9 +247,7 @@ def compare_tokens(
     )
 
 
-def _special_token_diff(
-    left: dict[str, Any] | None, right: dict[str, Any] | None
-) -> dict[str, Any]:
+def _special_token_diff(left: dict[str, Any] | None, right: dict[str, Any] | None) -> dict[str, Any]:
     if not left and not right:
         return {}
     left = left or {}
@@ -276,9 +268,7 @@ def _special_token_diff(
     if left.get("pad_token_id") is not None and left.get("pad_token_id") == left.get("eos_token_id"):
         if right.get("pad_token_id") != right.get("eos_token_id"):
             diff["pad_as_eos_baseline"] = True
-    if right.get("pad_token_id") is not None and right.get("pad_token_id") == right.get(
-        "eos_token_id"
-    ):
+    if right.get("pad_token_id") is not None and right.get("pad_token_id") == right.get("eos_token_id"):
         if left.get("pad_token_id") != left.get("eos_token_id"):
             diff["pad_as_eos_candidate"] = True
     return diff
@@ -303,7 +293,7 @@ def compare_json(left: Any, right: Any) -> Comparison:
                 if found:
                     return found
         elif isinstance(a, list):
-            for index, (x, y) in enumerate(zip(a, b)):
+            for index, (x, y) in enumerate(zip(a, b, strict=False)):
                 found = walk(x, y, f"{path}[{index}]")
                 if found:
                     return found
@@ -324,12 +314,12 @@ def compare_logits(left: list[float], right: list[float], tolerance: float) -> C
             result=ParityResult.NOT_OBSERVABLE,
             details={"reason": "one side missing logits"},
         )
-    pairs = list(zip(left, right))
+    pairs = list(zip(left, right, strict=False))
     delta = max((abs(a - b) for a, b in pairs), default=0.0)
     # Ranking agreement (top-k order when ids not provided — value ranks only)
     left_rank = sorted(range(len(left)), key=lambda i: left[i], reverse=True)
     right_rank = sorted(range(len(right)), key=lambda i: right[i], reverse=True)
-    rank_agree = sum(1 for a, b in zip(left_rank, right_rank) if a == b)
+    rank_agree = sum(1 for a, b in zip(left_rank, right_rank, strict=False) if a == b)
     rank_ratio = rank_agree / max(len(left_rank), 1)
     details = {
         "max_delta": delta,

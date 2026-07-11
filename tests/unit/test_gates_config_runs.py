@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from eleanity.config.project import EleanityProject, GateRule, write_default_project, load_project
+from eleanity.config.project import EleanityProject, GateRule, load_project, write_default_project
 from eleanity.core.engine import CompareEngine
 from eleanity.core.runs_index import diff_runs, list_runs
 from eleanity.gates.engine import evaluate_gates
@@ -87,9 +85,7 @@ def test_sarif_build_from_divergent_diagnosis():
             "status": "DIVERGENT",
             "summary": "template diverged",
             "first_divergence": "template",
-            "probable_causes": [
-                {"code": "MISSING_ASSISTANT_TURN_TOKEN", "confidence": 0.9, "message": "missing"}
-            ],
+            "probable_causes": [{"code": "MISSING_ASSISTANT_TURN_TOKEN", "confidence": 0.9, "message": "missing"}],
         },
     }
     sarif = build_sarif(payload)

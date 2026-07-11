@@ -1,9 +1,9 @@
+from eleanity.adapters.fake import FakeAdapter
 from eleanity.core.engine import CompareEngine
 from eleanity.core.matrix import consensus_summary
+from eleanity.core.observe import observe
 from eleanity.models.schemas import ParityProfile, ParityResult, Scenario
 from eleanity.policies.engine import PolicyEngine
-from eleanity.core.observe import observe
-from eleanity.adapters.fake import FakeAdapter
 
 
 def test_policy_engine_marks_template_incomparable_under_functional():

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
-from eleanity.adapters.base import CapabilitySet, HealthcheckResult
+from eleanity.adapters.base import HealthcheckResult
 from eleanity.adapters.openai_compat import OpenAICompatAdapter
 from eleanity.models.schemas import LayerObservation, LayerState, ModelSpec, Scenario
 
@@ -41,8 +40,7 @@ class VLLMAdapter(OpenAICompatAdapter):
             base_url=url,
             name="vllm",
             model_spec=model_spec,
-            tokenize_path=os.getenv("ELEANITY_VLLM_TOKENIZE_PATH")
-            or ("/tokenize" if url else None),
+            tokenize_path=os.getenv("ELEANITY_VLLM_TOKENIZE_PATH") or ("/tokenize" if url else None),
             models_path="/v1/models",
             chat_path="/v1/chat/completions",
         )
@@ -58,8 +56,7 @@ class VLLMAdapter(OpenAICompatAdapter):
             self._init_embedded()
         elif not url:
             self.capabilities.notes["runtime"] = (
-                "set ELEANITY_VLLM_URL for HTTP observations, "
-                "or ELEANITY_VLLM_MODE=embedded with vllm installed"
+                "set ELEANITY_VLLM_URL for HTTP observations, or ELEANITY_VLLM_MODE=embedded with vllm installed"
             )
             if vllm is None:
                 self.capabilities.generation = False
@@ -176,10 +173,7 @@ class VLLMAdapter(OpenAICompatAdapter):
                 tok = self._embedded_tokenizer
                 if tok is not None:
                     ids = tok.encode(rendered)
-                    if hasattr(ids, "ids"):
-                        ids = list(ids.ids)
-                    else:
-                        ids = list(ids)
+                    ids = list(ids.ids) if hasattr(ids, "ids") else list(ids)
                     return LayerObservation(
                         state=LayerState.OBSERVED,
                         data={"ids": ids, "token_ids": ids, "count": len(ids), "source": "vllm.embedded"},
@@ -195,9 +189,7 @@ class VLLMAdapter(OpenAICompatAdapter):
                 )
         obs = super().tokenize(rendered)
         if obs.state == LayerState.OBSERVED:
-            return obs.model_copy(
-                update={"origin": f"vllm.http:{self.tokenize_path}", "origin_kind": "http"}
-            )
+            return obs.model_copy(update={"origin": f"vllm.http:{self.tokenize_path}", "origin_kind": "http"})
         # Try alternate tokenize paths used by some OpenAI-compat servers
         if self.base_url:
             for path in ("/tokenize", "/v1/tokenize", "/completion/tokenize"):
@@ -290,9 +282,11 @@ class VLLMAdapter(OpenAICompatAdapter):
                     "origin_kind": "http",
                 }
             )
-        return obs.model_copy(
-            update={"origin": f"vllm.http:{self.chat_path}", "origin_kind": "http"}
-        ) if isinstance(obs, LayerObservation) else obs
+        return (
+            obs.model_copy(update={"origin": f"vllm.http:{self.chat_path}", "origin_kind": "http"})
+            if isinstance(obs, LayerObservation)
+            else obs
+        )
 
     def healthcheck(self) -> HealthcheckResult:
         if self.mode == "embedded" and not self.base_url:

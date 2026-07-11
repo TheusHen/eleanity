@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -58,11 +58,7 @@ def build_trace_document(
             },
             "errors": trace.get("errors") or [],
             "warnings": trace.get("warnings") or [],
-            "execution_capsule": (
-                capsules.get(trace.get("backend") or role)
-                if capsules
-                else None
-            ),
+            "execution_capsule": (capsules.get(trace.get("backend") or role) if capsules else None),
         }
         cap = subjects[role]["execution_capsule"]
         if hasattr(cap, "model_dump"):
@@ -80,7 +76,7 @@ def build_trace_document(
         "eleanity_version": __version__,
         "run_id": run_id,
         "run_type": result_payload.get("run_type") or "compare",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "policy": {
             "name": policy,
             "comparators": policy_comparator_set(policy).to_dict()["comparators"],
@@ -90,10 +86,7 @@ def build_trace_document(
         "observations": {
             "requested_layers": scenario.get("observe") or [],
             "per_subject_states": {
-                role: {
-                    layer: meta.get("state")
-                    for layer, meta in (subj.get("layers") or {}).items()
-                }
+                role: {layer: meta.get("state") for layer, meta in (subj.get("layers") or {}).items()}
                 for role, subj in subjects.items()
             },
         },
@@ -118,7 +111,8 @@ def build_trace_document(
         "gates": result_payload.get("gates"),
         "timings_ms": result_payload.get("timings_ms"),
         "reproduction_command": result_payload.get("reproduction_command"),
-        "privacy": privacy_manifest or {
+        "privacy": privacy_manifest
+        or {
             "redacted": bool(result_payload.get("redacted")),
             "content_left_machine": False,
         },

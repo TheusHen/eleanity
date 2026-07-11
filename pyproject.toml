@@ -92,6 +92,15 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+  "B008",   # Typer/FastAPI Option() defaults are intentional
+  "B904",   # raise-without-from: many CLI paths re-raise as Exit
+  "SIM102", # nested if often clearer for diagnostic branches
+  "SIM117", # nested with for httpx stream is intentional
+]
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]
+"src/eleanity/reporters/html.py" = ["E501"]  # legacy template builder
 
 [tool.mypy]
 python_version = "3.11"

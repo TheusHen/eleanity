@@ -4,12 +4,11 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from eleanity.cli.app import app
-from eleanity.cli.exitcodes import EXIT_DIVERGENT, EXIT_OK
+from eleanity.cli.exitcodes import EXIT_OK
 from eleanity.cli.resolve import resolve_compare
 from eleanity.core.engine import CompareEngine
 from eleanity.core.golden import save_golden
 from eleanity.models.schemas import ObservationTrace
-
 
 runner = CliRunner()
 
@@ -107,9 +106,7 @@ def test_snapshot_and_check_golden(tmp_path, monkeypatch):
     result = engine.compare("demo", ["fake", "fake"])
     golden_path = save_golden(
         ObservationTrace.model_validate(
-            json.loads((tmp_path / "runs" / result.run_id / "result.json").read_text(encoding="utf-8"))[
-                "traces"
-            ][0]
+            json.loads((tmp_path / "runs" / result.run_id / "result.json").read_text(encoding="utf-8"))["traces"][0]
         ),
         tmp_path / "golden",
     )

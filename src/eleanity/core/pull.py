@@ -25,9 +25,7 @@ def pull_model(
     try:
         from huggingface_hub import snapshot_download
     except ImportError as error:
-        raise RuntimeError(
-            "pull requires huggingface_hub (install eleanity[transformers])"
-        ) from error
+        raise RuntimeError("pull requires huggingface_hub (install eleanity[transformers])") from error
 
     log_event(logger, "pull_start", model=model_id, revision=revision, tokenizer_only=tokenizer_only)
     allow_patterns = None

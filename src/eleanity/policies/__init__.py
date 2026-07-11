@@ -25,9 +25,7 @@ def describe_policy(profile: ParityProfile) -> str:
             "Does not require equal logits/tokens; validates JSON/schema/tool names/"
             "args/stop reason/functional behavior."
         ),
-        ParityProfile.API_CONFORMANCE: (
-            "HTTP status, usage, finish_reason, streaming order, OpenAI-compatible shape."
-        ),
+        ParityProfile.API_CONFORMANCE: ("HTTP status, usage, finish_reason, streaming order, OpenAI-compatible shape."),
     }
     return descriptions[profile]
 

@@ -159,7 +159,5 @@ def capture_openai_jsonl(
         "hash_content": hash_content,
         "path": str(suite_path),
     }
-    (output_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2), encoding="utf-8"
-    )
+    (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

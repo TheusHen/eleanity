@@ -64,9 +64,7 @@ def diagnose_template(
                     "candidate_rendered_suffix": (right_text or "")[-48:],
                 },
                 affected_layers=["chat_template", "rendered_prompt", "input_token_ids", "generation"],
-                suggested_remediation=(
-                    "Set add_generation_prompt=true or configure --chat-template explicitly."
-                ),
+                suggested_remediation=("Set add_generation_prompt=true or configure --chat-template explicitly."),
             )
         )
 
@@ -82,20 +80,14 @@ def diagnose_template(
                     "flag": "missing_assistant_turn",
                 },
                 affected_layers=["chat_template", "rendered_prompt", "input_token_ids", "generation"],
-                suggested_remediation=(
-                    "Set add_generation_prompt=true or configure --chat-template explicitly."
-                ),
+                suggested_remediation=("Set add_generation_prompt=true or configure --chat-template explicitly."),
             )
         )
 
     if prompt_details.get("newline_difference"):
-        causes.append(
-            _cause("NEWLINE_DIVERGENT", 0.8, "Newlines differ (CRLF/LF or line count).")
-        )
+        causes.append(_cause("NEWLINE_DIVERGENT", 0.8, "Newlines differ (CRLF/LF or line count)."))
     if prompt_details.get("whitespace_only_difference"):
-        causes.append(
-            _cause("WHITESPACE_DIVERGENT", 0.78, "Only whitespace differs between prompts.")
-        )
+        causes.append(_cause("WHITESPACE_DIVERGENT", 0.78, "Only whitespace differs between prompts."))
     if prompt_details.get("unicode_normalization_difference"):
         causes.append(
             _cause(
@@ -138,9 +130,7 @@ def diagnose_tokens(
     if special.get("pad_as_eos_candidate") or special.get("pad_as_eos_baseline"):
         causes.append(_cause("PAD_USED_AS_EOS", 0.86, "PAD is used as EOS on one backend."))
     if token_details.get("truncation_difference"):
-        causes.append(
-            _cause("TRUNCATION_DIFFERENT", 0.87, "Truncation behavior differs between backends.")
-        )
+        causes.append(_cause("TRUNCATION_DIFFERENT", 0.87, "Truncation behavior differs between backends."))
     if left.get("padding_side") and right.get("padding_side"):
         if left.get("padding_side") != right.get("padding_side"):
             causes.append(_cause("PADDING_SIDE_DIFFERENT", 0.84, "padding_side differs."))
@@ -215,10 +205,12 @@ def diagnose_generation(left: dict[str, Any], right: dict[str, Any]) -> list[Pro
 def actions_for(causes: list[ProbableCause], layer: str) -> list[str]:
     actions: list[str] = []
     codes = {c.code for c in causes}
-    if "MISSING_ASSISTANT_TURN_TOKEN" in codes or "ADD_GENERATION_PROMPT_DIVERGENT" in codes or "CHAT_TEMPLATE_GENERATION_PROMPT_MISMATCH" in codes:
-        actions.append(
-            "eleanity compare --observe template,tokens --policy strict --format text"
-        )
+    if (
+        "MISSING_ASSISTANT_TURN_TOKEN" in codes
+        or "ADD_GENERATION_PROMPT_DIVERGENT" in codes
+        or "CHAT_TEMPLATE_GENERATION_PROMPT_MISMATCH" in codes
+    ):
+        actions.append("eleanity compare --observe template,tokens --policy strict --format text")
         actions.append("Set generation.add_generation_prompt=true on both backends.")
         actions.append("Diff tokenizer chat_template / tokenizer_config.json.")
     if "CHAT_TEMPLATE_DIFFERENT" in codes or "CHAT_TEMPLATE_MISSING_CANDIDATE" in codes:

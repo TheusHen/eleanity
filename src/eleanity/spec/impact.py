@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -11,7 +11,7 @@ from eleanity.models.schemas import Comparison, ObservationTrace, ParityResult
 from eleanity.spec.layers import LAYER_ORDER_V1, canonicalize_layer
 
 
-class FunctionalImpact(str, Enum):
+class FunctionalImpact(StrEnum):
     NONE = "NONE"
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -129,18 +129,12 @@ def assess_impact(
         rids = rg.get("ids") or rg.get("token_ids") or []
         if lids or rids:
             final_ids_equal = list(lids) == list(rids)
-            if lids and rids:
-                first_token_changed = lids[0] != rids[0] if lids and rids else lids != rids
-            else:
-                first_token_changed = True
+            first_token_changed = (lids[0] != rids[0] if lids and rids else lids != rids) if lids and rids else True
         ltext = lg.get("text")
         rtext = rg.get("text")
         if ltext is not None or rtext is not None:
             final_text_equal = (ltext or "") == (rtext or "")
 
-        for name in ("structured", "structured_output", "tool_call_parsing"):
-            # coarse structured presence
-            pass
         ls = left.layers.get("structured")
         rs = right.layers.get("structured")
         if ls and rs and ls.data is not None and rs.data is not None:
@@ -159,7 +153,11 @@ def assess_impact(
                 entry = comparisons.get(name) or comparisons.get(canon)
                 if entry is None:
                     continue
-                result = entry.result if hasattr(entry, "result") else (entry.get("result") if isinstance(entry, dict) else None)
+                result = (
+                    entry.result
+                    if hasattr(entry, "result")
+                    else (entry.get("result") if isinstance(entry, dict) else None)
+                )
                 value = result.value if hasattr(result, "value") else result
                 if value == "DIVERGENT":
                     propagation.append(name)
@@ -179,10 +177,7 @@ def assess_impact(
             rationale = f"Divergence at {layer} with equal final token sequence."
     elif parity == "DIVERGENT" and first_token_changed:
         impact = max(impact, FunctionalImpact.HIGH, key=lambda x: _IMPACT_RANK[x])
-        rationale = (
-            f"First divergence at {layer}; first generated token changed — "
-            "downstream generation path diverged."
-        )
+        rationale = f"First divergence at {layer}; first generated token changed — downstream generation path diverged."
     elif parity == "DIVERGENT" and structured_ok is False:
         impact = FunctionalImpact.CATASTROPHIC
         rationale = f"Divergence at {layer} invalidated structured/tool output."
@@ -205,10 +200,7 @@ def assess_impact(
         "special_tokens",
     }:
         impact = max(impact, FunctionalImpact.HIGH, key=lambda x: _IMPACT_RANK[x])
-        rationale = (
-            f"First divergence at {layer} changed the input path; "
-            "generated token sequence differs."
-        )
+        rationale = f"First divergence at {layer} changed the input path; generated token sequence differs."
 
     return ImpactAssessment(
         parity=parity,

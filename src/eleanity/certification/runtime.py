@@ -50,7 +50,9 @@ def certify_runtime(adapter: Any, *, model: str = "cert-demo") -> CertificationR
     try:
         rendered = adapter.render(scenario)
         template_ok = getattr(rendered, "state", None) == LayerState.OBSERVED
-        checks.append({"name": "template_observable", "passed": template_ok, "state": str(getattr(rendered, "state", None))})
+        checks.append(
+            {"name": "template_observable", "passed": template_ok, "state": str(getattr(rendered, "state", None))}
+        )
         text = ""
         if template_ok:
             text = str(rendered.data.get("text") or rendered.data.get("rendered_text") or "")
@@ -59,7 +61,9 @@ def certify_runtime(adapter: Any, *, model: str = "cert-demo") -> CertificationR
         checks.append({"name": "tokens_observable", "passed": tokens_ok, "state": str(getattr(tokens, "state", None))})
         gen = adapter.generate(scenario)
         generation_ok = getattr(gen, "state", None) == LayerState.OBSERVED
-        checks.append({"name": "generation_observable", "passed": generation_ok, "state": str(getattr(gen, "state", None))})
+        checks.append(
+            {"name": "generation_observable", "passed": generation_ok, "state": str(getattr(gen, "state", None))}
+        )
     except Exception as error:
         notes.append(f"runtime probe error: {error}")
         checks.append({"name": "runtime_probe", "passed": False, "error": str(error)})

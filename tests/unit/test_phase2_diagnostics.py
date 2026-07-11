@@ -5,7 +5,8 @@ from eleanity.models.schemas import ParityProfile, ParityResult, Scenario
 
 
 @pytest.mark.parametrize(
-    ("profile", "expected"), [
+    ("profile", "expected"),
+    [
         (ParityProfile.STRICT, ParityResult.DIVERGENT),
         (ParityProfile.QUANTIZED, ParityResult.PASS_WITH_TOLERANCE),
         (ParityProfile.FUNCTIONAL, ParityResult.PASS_WITH_TOLERANCE),

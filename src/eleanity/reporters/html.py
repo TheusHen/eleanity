@@ -9,13 +9,12 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-
 
 LAYER_META = {
     "artifact": {
@@ -149,9 +148,7 @@ ENVIRONMENT = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
 )
-ENVIRONMENT.filters["json_pretty"] = lambda value: json.dumps(
-    value, ensure_ascii=False, indent=2, sort_keys=True
-)
+ENVIRONMENT.filters["json_pretty"] = lambda value: json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def _slug(value: str) -> str:
@@ -167,7 +164,7 @@ def _format_timestamp(value: str | None) -> str:
         return "—"
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        parsed = parsed.astimezone(timezone.utc)
+        parsed = parsed.astimezone(UTC)
         return parsed.strftime("%Y-%m-%d %H:%M:%S UTC")
     except (TypeError, ValueError):
         return value
@@ -324,14 +321,7 @@ def _data_view(layer: str, data: dict[str, Any]) -> dict[str, Any]:
                 "content_omitted": bool(text or ids),
             }
         )
-    elif layer in {"structured", "api", "streaming"}:
-        view.update(
-            {
-                "field_count": len(data),
-                "content_omitted": bool(data),
-            }
-        )
-    elif layer not in LAYER_META:
+    elif layer in {"structured", "api", "streaming"} or layer not in LAYER_META:
         view.update(
             {
                 "field_count": len(data),
@@ -396,7 +386,7 @@ def _comparison_view(comparison: dict[str, Any] | None) -> dict[str, Any]:
 def _ordered_layers(traces: list[dict[str, Any]]) -> list[str]:
     found: list[str] = []
     for trace in traces:
-        for layer in (trace.get("layers") or {}):
+        for layer in trace.get("layers") or {}:
             if layer not in found:
                 found.append(layer)
     canonical = [layer for layer in LAYER_META if layer in found]
@@ -408,11 +398,7 @@ def _environment_view(data: dict[str, Any], traces: list[dict[str, Any]]) -> dic
     if not env and traces:
         env = traces[0].get("environment") or {}
     packages = env.get("packages") or {}
-    package_rows = [
-        {"name": name, "version": version or "—"}
-        for name, version in sorted(packages.items())
-        if version
-    ]
+    package_rows = [{"name": name, "version": version or "—"} for name, version in sorted(packages.items()) if version]
     return {
         "python_version": env.get("python_version") or "—",
         "platform": env.get("platform") or "—",
@@ -500,11 +486,7 @@ def _build_charts(
             )
     else:
         for index, trace in enumerate(traces):
-            label = (
-                backend_views[index]["label"]
-                if index < len(backend_views)
-                else str(trace.get("backend"))
-            )
+            label = backend_views[index]["label"] if index < len(backend_views) else str(trace.get("backend"))
             timing_items.append(
                 {
                     "label": label,
@@ -559,7 +541,7 @@ def _build_charts(
     # Logits from first observed backend
     logits_series = []
     for trace in traces:
-        logits = ((trace.get("layers") or {}).get("logits") or {})
+        logits = (trace.get("layers") or {}).get("logits") or {}
         if logits.get("state") != "OBSERVED":
             continue
         data = logits.get("data") or {}
@@ -567,11 +549,11 @@ def _build_charts(
         vals = data.get("top_logits") or []
         if not vals:
             continue
-        max_abs = max(abs(float(v)) for v in vals) or 1.0
+        max(abs(float(v)) for v in vals) or 1.0
         min_v = min(float(v) for v in vals)
         max_v = max(float(v) for v in vals)
         span = (max_v - min_v) or 1.0
-        for rank, (tid, val) in enumerate(zip(ids, vals), start=1):
+        for rank, (tid, val) in enumerate(zip(ids, vals, strict=False), start=1):
             fval = float(val)
             logits_series.append(
                 {
@@ -634,7 +616,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
 
     # Support both plain backend keys and disambiguated keys (backend#2) from result.json.
     comparison_by_order: list[dict[str, Any]] = []
-    for key, value in comparisons.items():
+    for _key, value in comparisons.items():
         if isinstance(value, dict):
             comparison_by_order.append(value)
 
@@ -714,9 +696,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
     layer_views: list[dict[str, Any]] = []
     for layer_index, layer in enumerate(layers):
         candidate_statuses = [
-            backend["comparisons"][layer]["code"]
-            for backend in backend_views
-            if not backend["is_baseline"]
+            backend["comparisons"][layer]["code"] for backend in backend_views if not backend["is_baseline"]
         ]
         aggregate = (
             max(candidate_statuses, key=lambda item: STATUS_PRIORITY.get(item, 0))
@@ -821,9 +801,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
 
     total_observations = len(traces) * len(layers)
     total_comparisons = max(0, len(traces) - 1) * len(layers)
-    comparable_results = [
-        result for result in comparison_results if result not in {"NOT_OBSERVABLE", "INCOMPARABLE"}
-    ]
+    comparable_results = [result for result in comparison_results if result not in {"NOT_OBSERVABLE", "INCOMPARABLE"}]
     divergent_count = comparison_results.count("DIVERGENT")
     tolerance_count = comparison_results.count("PASS_WITH_TOLERANCE")
     pass_count = comparison_results.count("PASS")
@@ -868,9 +846,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
 
     propagation = diagnosis.get("propagation_percent")
     propagation_value = float(propagation or 0.0)
-    first_layer_label = LAYER_META.get(first_divergence, {}).get(
-        "label", first_divergence or "none"
-    )
+    first_layer_label = LAYER_META.get(first_divergence, {}).get("label", first_divergence or "none")
     scenario = data.get("scenario") or {}
     profile = scenario.get("parity_profile") or scenario.get("parity_policy")
     tolerance = scenario.get("tolerance")
@@ -917,13 +893,9 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
                 }
                 for item in (diagnosis.get("probable_causes") or [])
             ],
-            "suggested_actions": [
-                _redact_text(item) or "—"
-                for item in (diagnosis.get("suggested_actions") or [])
-            ],
+            "suggested_actions": [_redact_text(item) or "—" for item in (diagnosis.get("suggested_actions") or [])],
             "warnings": [
-                _redact_text(item) or "—"
-                for item in (diagnosis.get("warnings") or data.get("warnings") or [])
+                _redact_text(item) or "—" for item in (diagnosis.get("warnings") or data.get("warnings") or [])
             ],
             "scope_note": (
                 f"Causal diagnosis: {backend_views[0]['label']} × {backend_views[1]['label']}; "
@@ -936,7 +908,8 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
                 )
             ),
         },
-        "reproduction_command": data.get("reproduction_command") or f"eleanity report {data.get('run_id') or 'RUN_ID'} --format html",
+        "reproduction_command": data.get("reproduction_command")
+        or f"eleanity report {data.get('run_id') or 'RUN_ID'} --format html",
         "consensus": data.get("consensus") or {},
         "capabilities": data.get("capabilities") or {},
         "gates": data.get("gates") or {},
@@ -956,9 +929,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
             "layer_count": len(layers),
             "observed_count": observed_count,
             "total_observations": total_observations,
-            "observability_percent": round(observed_count / total_observations * 100, 1)
-            if total_observations
-            else 0.0,
+            "observability_percent": round(observed_count / total_observations * 100, 1) if total_observations else 0.0,
             "comparable_count": len(comparable_results),
             "total_comparisons": total_comparisons,
             "coverage_percent": round(len(comparable_results) / total_comparisons * 100, 1)
@@ -999,14 +970,8 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
                 "device_map": model_block.get("device_map") or "—",
                 "trust_remote_code": model_block.get("trust_remote_code"),
             },
-            "parameters": [
-                {"label": str(key), "value": _display_value(value)}
-                for key, value in parameters.items()
-            ],
-            "requested_layers": [
-                LAYER_META.get(str(layer), {}).get("label", str(layer))
-                for layer in requested_layers
-            ],
+            "parameters": [{"label": str(key), "value": _display_value(value)} for key, value in parameters.items()],
+            "requested_layers": [LAYER_META.get(str(layer), {}).get("label", str(layer)) for layer in requested_layers],
             "metadata_available": bool(scenario),
         },
         "source_schema_version": data.get("schema_version") or "legacy",

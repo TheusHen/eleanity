@@ -4,9 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from eleanity.models.schemas import Comparison, LayerObservation, LayerState, ObservationTrace, ParityResult
+from eleanity.models.schemas import Comparison, ObservationTrace, ParityResult, Scenario
 from eleanity.policies.engine import PolicyEngine
-from eleanity.models.schemas import Scenario
 
 
 def save_golden(trace: ObservationTrace, directory: Path | str, name: str | None = None) -> Path:
@@ -42,9 +41,7 @@ def golden_gate(
     comparisons = compare_against_golden(live, golden, scenario)
     focus = layers or list(comparisons)
     divergent = [
-        layer
-        for layer in focus
-        if layer in comparisons and comparisons[layer].result == ParityResult.DIVERGENT
+        layer for layer in focus if layer in comparisons and comparisons[layer].result == ParityResult.DIVERGENT
     ]
     return {
         "passed": not divergent,

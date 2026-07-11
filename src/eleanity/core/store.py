@@ -18,13 +18,9 @@ def redact_prompt_layers(payload: dict) -> dict:
                 text = data.get("text") or data.get("rendered_text")
                 if text is not None:
                     data["template_hash"] = (
-                        data.get("template_hash")
-                        or data.get("chat_template_hash")
-                        or text_sha256(str(text))
+                        data.get("template_hash") or data.get("chat_template_hash") or text_sha256(str(text))
                     )
-                    data["rendered_byte_length"] = data.get("rendered_byte_length") or len(
-                        str(text).encode("utf-8")
-                    )
+                    data["rendered_byte_length"] = data.get("rendered_byte_length") or len(str(text).encode("utf-8"))
                     data["rendered_char_length"] = data.get("rendered_char_length") or len(str(text))
                 data["text"] = None
                 data["rendered_text"] = None
@@ -54,9 +50,7 @@ def redact_prompt_layers(payload: dict) -> dict:
     return payload
 
 
-def write_result_json(
-    target: Path, payload: dict, *, redact_prompts: bool = False
-) -> Path:
+def write_result_json(target: Path, payload: dict, *, redact_prompts: bool = False) -> Path:
     target.mkdir(parents=True, exist_ok=True)
     body = payload
     if redact_prompts:

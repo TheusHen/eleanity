@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from eleanity.models.schemas import LayerState, ParityResult
 from eleanity.spec.parity import FormalParityStatus
 
 
-class ObservationState(str, Enum):
+class ObservationState(StrEnum):
     """State of a single layer observation on one subject."""
 
     OBSERVED = "OBSERVED"

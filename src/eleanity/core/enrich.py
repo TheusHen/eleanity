@@ -18,7 +18,6 @@ from eleanity.models.schemas import (
     Scenario,
 )
 
-
 ARTIFACT_COMPARE_KEYS = (
     "model_ref",
     "revision",
@@ -39,17 +38,18 @@ def collect_tolerance_reasons(
 ) -> list[str]:
     reasons: list[str] = []
     # comparisons may be nested by backend key
-    for key, layers in comparisons.items():
+    for _key, layers in comparisons.items():
         if not isinstance(layers, dict):
             continue
         # detect nested backend map vs flat layer map
         sample = next(iter(layers.values()), None) if layers else None
-        if sample is not None and isinstance(sample, dict) and "result" not in sample and any(
-            isinstance(v, dict) and "result" in v for v in layers.values()
-        ):
-            layer_map = layers
-        elif sample is not None and (
-            hasattr(sample, "result") or (isinstance(sample, dict) and "result" in sample)
+        if (
+            sample is not None
+            and isinstance(sample, dict)
+            and "result" not in sample
+            and any(isinstance(v, dict) and "result" in v for v in layers.values())
+            or sample is not None
+            and (hasattr(sample, "result") or (isinstance(sample, dict) and "result" in sample))
         ):
             layer_map = layers
         else:
@@ -58,7 +58,9 @@ def collect_tolerance_reasons(
             if hasattr(entry, "result"):
                 result = entry.result.value if hasattr(entry.result, "value") else str(entry.result)
                 details = entry.details or {}
-                tol = getattr(entry, "tolerance_reason", None) or details.get("tolerance_reason") or details.get("reason")
+                tol = (
+                    getattr(entry, "tolerance_reason", None) or details.get("tolerance_reason") or details.get("reason")
+                )
             elif isinstance(entry, dict):
                 result = str(entry.get("result") or "")
                 details = entry.get("details") or {}
@@ -103,8 +105,10 @@ def enrich_diagnosis(
     flat: dict[str, Any] = {}
     if comparisons:
         first = next(iter(comparisons.values()), {})
-        if isinstance(first, dict) and first and (
-            "result" in first or hasattr(next(iter(first.values()), None), "result")
+        if (
+            isinstance(first, dict)
+            and first
+            and ("result" in first or hasattr(next(iter(first.values()), None), "result"))
         ):
             flat = first
         else:

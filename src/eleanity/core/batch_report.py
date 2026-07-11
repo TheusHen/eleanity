@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -81,7 +81,7 @@ def run_multi_model_batch(
 
     summary = {
         "batch_id": batch_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "job_count": len(jobs),
         "status_counts": dict(status_counts),
         "divergence_layer_counts": dict(divergence_counts),

@@ -77,9 +77,7 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
                 hypothesis=err.message,
                 next_test="Fix the failing backend configuration and re-run.",
                 summary=f"ERROR: {err.message}",
-                probable_causes=[
-                    ProbableCause(code=err.code, confidence=1.0, message=err.message)
-                ],
+                probable_causes=[ProbableCause(code=err.code, confidence=1.0, message=err.message)],
                 suggested_actions=["Inspect adapter logs and healthcheck.", err.detail or ""],
                 warnings=list(trace.warnings),
             )
@@ -186,13 +184,9 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
                         token_b.data.get("ids") or token_b.data.get("token_ids") or [],
                     )
                 propagation_percent = (
-                    float(token_result.details.get("downstream_percent", 0.0))
-                    if token_result
-                    else 0.0
+                    float(token_result.details.get("downstream_percent", 0.0)) if token_result else 0.0
                 )
-                token_index = (
-                    token_result.details.get("first_difference") if token_result else None
-                )
+                token_index = token_result.details.get("first_difference") if token_result else None
                 causes = diagnose_template(a.data, b.data, details)
                 actions = actions_for(causes, layer)
                 hypothesis = causes[0].message if causes else "Template divergence."
@@ -212,14 +206,10 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
                         candidate=_snippet(right_text, char_i),
                     ),
                     propagation=PropagationInfo(
-                        first_token_difference=token_index
-                        if isinstance(token_index, int)
-                        else None,
+                        first_token_difference=token_index if isinstance(token_index, int) else None,
                         different_tokens_percent=propagation_percent,
                         downstream_different=(
-                            token_result.details.get("downstream_different")
-                            if token_result
-                            else None
+                            token_result.details.get("downstream_different") if token_result else None
                         ),
                     ),
                     propagation_percent=propagation_percent,
@@ -307,15 +297,13 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
             left_text = str(a.data.get("text") or "")
             right_text = str(b.data.get("text") or "")
             # Prefer text when either side lacks generated token ids (OpenAI-compat APIs).
-            if (left_ids and right_ids):
+            if left_ids and right_ids:
                 result = compare_tokens(left_ids, right_ids)
                 divergent = result.result == ParityResult.DIVERGENT
                 # Soft: identical decoded text overrides id-only drift
                 if divergent and left_text and left_text == right_text:
                     divergent = False
-                    warnings.append(
-                        "Generation token ids differ but decoded text matches."
-                    )
+                    warnings.append("Generation token ids differ but decoded text matches.")
             else:
                 result = compare_prompt(left_text, right_text)
                 divergent = result.result == ParityResult.DIVERGENT
@@ -332,8 +320,7 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
             if stop_divergent and left_text and left_text == right_text:
                 # Synonym / naming drift only — do not fail causal walk
                 warnings.append(
-                    f"finish_reason naming differs ({left_stop!r} vs {right_stop!r}) "
-                    "but generated text matches."
+                    f"finish_reason naming differs ({left_stop!r} vs {right_stop!r}) but generated text matches."
                 )
                 stop_divergent = False
 
@@ -364,9 +351,7 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
                         message=f"Layer {layer} differs between backends.",
                     )
                 ],
-                suggested_actions=[
-                    f"eleanity compare --observe {layer} --backends {left.backend},{right.backend}"
-                ],
+                suggested_actions=[f"eleanity compare --observe {layer} --backends {left.backend},{right.backend}"],
                 hypothesis=f"Layer {layer} differs between backends.",
                 next_test=f"Isolate {layer} with the same artifact.",
                 summary=f"First divergence is in {layer}.",
@@ -399,8 +384,6 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
         hypothesis="No observable divergence between traces.",
         next_test="Expand observe layers if deeper parity is required.",
         summary="No divergence found on mutually comparable layers.",
-        suggested_actions=[
-            "eleanity compare --observe artifact,template,tokens,generation --format text"
-        ],
+        suggested_actions=["eleanity compare --observe artifact,template,tokens,generation --format text"],
         warnings=warnings,
     )

@@ -8,7 +8,6 @@ from typing import Any
 from eleanity.config.project import BackendProfile, EleanityProject, GateRule, find_project_file, load_project
 from eleanity.models.schemas import ParityProfile, Scenario
 
-
 DEFAULT_BACKENDS = "transformers,vllm,llamacpp"
 DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 

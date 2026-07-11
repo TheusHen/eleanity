@@ -5,9 +5,10 @@ from pathlib import Path
 from eleanity.core.engine import RESULT_SCHEMA_VERSION, CompareEngine
 from eleanity.core.observe import observe
 from eleanity.core.store import (
-    redact_prompt_layers as _redact_prompt_layers,
     write_github_annotations,
     write_junit,
+)
+from eleanity.core.store import (
     write_result_json as _write_result_json,
 )
 from eleanity.models.schemas import Comparison, ObservationTrace, Scenario
@@ -54,9 +55,7 @@ def run_compare(
     parallel: bool = True,
     tokenizer_only: bool = False,
 ) -> tuple[str, list[ObservationTrace], object]:
-    engine = CompareEngine(
-        runs_dir=runs_dir, parallel=parallel, tokenizer_only=tokenizer_only
-    )
+    engine = CompareEngine(runs_dir=runs_dir, parallel=parallel, tokenizer_only=tokenizer_only)
     result = engine.compare(
         model,
         backends,

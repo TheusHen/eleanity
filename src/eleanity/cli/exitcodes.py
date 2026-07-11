@@ -4,7 +4,6 @@ from typing import Any
 
 from eleanity.models.schemas import ParityResult
 
-
 EXIT_OK = 0
 EXIT_DIVERGENT = 1
 EXIT_CONFIG = 2

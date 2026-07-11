@@ -3,7 +3,6 @@ from pathlib import Path
 
 from eleanity.models.schemas import ObservationTrace, Scenario
 
-
 ROOT = Path(__file__).parents[2]
 
 

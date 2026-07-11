@@ -57,11 +57,7 @@ class TransformersAdapter(BackendAdapter):
                 usage=can_weights,
                 errors=True,
                 healthcheck=True,
-                notes=(
-                    {"mode": "tokenizer_only"}
-                    if self.tokenizer_only
-                    else {}
-                ),
+                notes=({"mode": "tokenizer_only"} if self.tokenizer_only else {}),
             )
         except ImportError:
             self.capabilities = CapabilitySet(artifact=True, healthcheck=True)
@@ -128,9 +124,8 @@ class TransformersAdapter(BackendAdapter):
             raise RuntimeError("tokenizer_only mode: model weights are not loaded")
         key = f"mdl:{self._cache_key()}"
         if key not in self._model_cache:
-            from transformers import AutoModelForCausalLM
-
             import torch
+            from transformers import AutoModelForCausalLM
 
             dtype = self._resolve_torch_dtype()
             kwargs: dict[str, Any] = {
@@ -279,8 +274,11 @@ class TransformersAdapter(BackendAdapter):
             local_path=sanitize_path(self.model_spec.local_path),
             tokenizer=sanitize_path(getattr(tokenizer, "name_or_path", None))
             if getattr(tokenizer, "name_or_path", None)
-            and ("/" in str(getattr(tokenizer, "name_or_path", "")) or "\\" in str(getattr(tokenizer, "name_or_path", "")))
-            and not str(getattr(tokenizer, "name_or_path", "")).count("/") == 1
+            and (
+                "/" in str(getattr(tokenizer, "name_or_path", ""))
+                or "\\" in str(getattr(tokenizer, "name_or_path", ""))
+            )
+            and str(getattr(tokenizer, "name_or_path", "")).count("/") != 1
             else getattr(tokenizer, "name_or_path", None),
             tokenizer_hash=text_sha256(str(getattr(tokenizer, "vocab_size", ""))),
             chat_template_hash=ArtifactFingerprint.text_hash(template if isinstance(template, str) else None),
@@ -356,9 +354,7 @@ class TransformersAdapter(BackendAdapter):
             "cls_token_id": getattr(tokenizer, "cls_token_id", None),
             "mask_token_id": getattr(tokenizer, "mask_token_id", None),
             "additional_special_tokens": additional,
-            "additional_special_tokens_ids": [
-                tokenizer.convert_tokens_to_ids(token) for token in additional
-            ],
+            "additional_special_tokens_ids": [tokenizer.convert_tokens_to_ids(token) for token in additional],
             "vocab_size": getattr(tokenizer, "vocab_size", None),
             "model_max_length": getattr(tokenizer, "model_max_length", None),
             "chat_template_hash": ArtifactFingerprint.text_hash(

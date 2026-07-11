@@ -99,7 +99,9 @@ def observe(
                     else:
                         result = result.model_copy(update={"state": LayerState.NOT_EXPOSED})
                 if not result.origin:
-                    result = _tag(result, origin=origin or f"{name}.{layer}", origin_kind=result.origin_kind or "native")
+                    result = _tag(
+                        result, origin=origin or f"{name}.{layer}", origin_kind=result.origin_kind or "native"
+                    )
                 return result
             return result
         except Exception as error:
@@ -165,9 +167,7 @@ def observe(
             "generation", adapter.generate, scenario, code="GENERATION_ERROR", origin=f"{name}.generate"
         )
         if layers["generation"].state not in {LayerState.OBSERVED}:
-            warnings.append(
-                f"{name}: generation {layers['generation'].state.value} — {layers['generation'].note}"
-            )
+            warnings.append(f"{name}: generation {layers['generation'].state.value} — {layers['generation'].note}")
 
     if "structured" in requested:
         structured = getattr(adapter, "structured", None)
@@ -196,9 +196,7 @@ def observe(
         if callable(api):
             layers["api"] = _capture("api", api, scenario, code="API_ERROR", origin=f"{name}.api_probe")
         else:
-            layers["api"] = _unsupported(
-                "api", "adapter does not implement api_probe()", origin=f"{name}.api_probe"
-            )
+            layers["api"] = _unsupported("api", "adapter does not implement api_probe()", origin=f"{name}.api_probe")
 
     duration_ms = (time.perf_counter() - started) * 1000
     log_event(

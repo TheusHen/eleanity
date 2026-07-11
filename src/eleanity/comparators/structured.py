@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 from typing import Any
 
@@ -13,7 +14,6 @@ def validate_json_schema(instance: Any, schema: dict[str, Any] | None) -> tuple[
     if schema is None:
         return True, None
     try:
-        import jsonschema
         from jsonschema import Draft202012Validator
 
         Draft202012Validator.check_schema(schema)
@@ -54,10 +54,8 @@ def normalize_tool_call(item: dict[str, Any]) -> dict[str, Any]:
     if arguments is None:
         arguments = item.get("arguments")
     if isinstance(arguments, str):
-        try:
+        with contextlib.suppress(json.JSONDecodeError):
             arguments = json.loads(arguments)
-        except json.JSONDecodeError:
-            pass
     return {"name": name, "arguments": arguments, "id": item.get("id")}
 
 
@@ -150,7 +148,7 @@ def compare_structured(left: dict[str, Any], right: dict[str, Any]) -> Compariso
                 details={**details, "reason": "tool names differ"},
             )
         # Argument compare (order-sensitive for now)
-        for index, (a, b) in enumerate(zip(left_tools, right_tools)):
+        for index, (a, b) in enumerate(zip(left_tools, right_tools, strict=False)):
             if a.get("arguments") != b.get("arguments"):
                 path_cmp = compare_json(a.get("arguments"), b.get("arguments"))
                 return Comparison(

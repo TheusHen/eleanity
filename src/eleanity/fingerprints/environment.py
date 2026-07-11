@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import platform
+from collections.abc import Iterable
 from importlib import metadata
-from typing import Iterable
 
 from eleanity.models.schemas import EnvironmentFingerprint
 

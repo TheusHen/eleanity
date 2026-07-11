@@ -6,10 +6,9 @@ import os
 import re
 import shutil
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
-
 
 SECRET_PATTERNS = [
     re.compile(r"(?i)(api[_-]?key|authorization|bearer)\s*[:=]\s*['\"]?([^\s'\"]+)"),
@@ -57,7 +56,9 @@ def parse_retention(value: str | None) -> timedelta | None:
 def scrub_secrets(text: str) -> str:
     out = text
     for pattern in SECRET_PATTERNS:
-        out = pattern.sub(lambda m: (m.group(0).split(m.group(m.lastindex or 0))[0] if False else "[SECRET_REDACTED]"), out)
+        out = pattern.sub(
+            lambda m: m.group(0).split(m.group(m.lastindex or 0))[0] if False else "[SECRET_REDACTED]", out
+        )
         out = pattern.sub("[SECRET_REDACTED]", out)
     return out
 
@@ -125,7 +126,7 @@ def apply_retention(runs_dir: Path, retention: str | None) -> int:
     delta = parse_retention(retention)
     if delta is None:
         return 0
-    cutoff = datetime.now(timezone.utc) - delta
+    cutoff = datetime.now(UTC) - delta
     removed = 0
     runs_dir = Path(runs_dir)
     if not runs_dir.is_dir():
@@ -133,7 +134,7 @@ def apply_retention(runs_dir: Path, retention: str | None) -> int:
     for child in runs_dir.iterdir():
         if not child.is_dir():
             continue
-        mtime = datetime.fromtimestamp(child.stat().st_mtime, tz=timezone.utc)
+        mtime = datetime.fromtimestamp(child.stat().st_mtime, tz=UTC)
         if mtime < cutoff:
             shutil.rmtree(child, ignore_errors=True)
             removed += 1

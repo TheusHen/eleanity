@@ -6,7 +6,6 @@ import os
 import platform
 import shutil
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -16,16 +15,14 @@ from eleanity import __version__
 from eleanity.adapters import adapter_for, available_adapters
 from eleanity.cli.backends_check import check_backends, ensure_local_dep
 from eleanity.cli.errors import (
-    EleanityError,
     config_error,
     run_not_found,
     unknown_backend,
 )
 from eleanity.cli.exitcodes import EXIT_CONFIG, EXIT_DIVERGENT, EXIT_OK, exit_from_batch
-from eleanity.cli.output import OutputFormat, emit_compare_result, emit_error
+from eleanity.cli.output import emit_compare_result, emit_error
 from eleanity.cli.report_text import render_text_report
 from eleanity.cli.resolve import (
-    DEFAULT_BACKENDS,
     DEFAULT_MODEL,
     apply_scenario_overrides,
     load_project_optional,
@@ -37,7 +34,7 @@ from eleanity.core.golden import golden_gate, save_golden
 from eleanity.core.pull import pull_model
 from eleanity.core.runs_index import diff_runs, list_runs, load_run
 from eleanity.fingerprints.gguf import inspect_gguf
-from eleanity.models.schemas import ObservationTrace, ParityProfile, ParityResult, Scenario
+from eleanity.models.schemas import ObservationTrace, ParityProfile, Scenario
 from eleanity.playbook import get_playbook_entry, render_playbook_markdown
 from eleanity.reporters.sarif import write_sarif
 from eleanity.scenarios import load_scenarios
@@ -100,8 +97,7 @@ def _prepare_scenario(scenario: Scenario | None, resolved) -> Scenario:
         scenario = Scenario(
             name="compare",
             messages=[{"role": "user", "content": "Hello"}],
-            observe=resolved.observe
-            or ["artifact", "template", "special_tokens", "tokens", "generation"],
+            observe=resolved.observe or ["artifact", "template", "special_tokens", "tokens", "generation"],
             parity_profile=resolved.policy,
         )
     scenario = apply_scenario_overrides(scenario, resolved)
@@ -122,9 +118,7 @@ def _prepare_scenario(scenario: Scenario | None, resolved) -> Scenario:
 
 @app.command()
 def doctor(
-    probe_backends: bool = typer.Option(
-        False, "--check-backends", help="Probe selected backends"
-    ),
+    probe_backends: bool = typer.Option(False, "--check-backends", help="Probe selected backends"),
     backends: str = typer.Option("", help="Backends to probe (default: project or common HTTP)"),
     format: str = FormatOpt,
 ) -> None:
@@ -192,12 +186,16 @@ def doctor(
     if probe_backends:
         names = [b.strip() for b in backends.split(",") if b.strip()]
         if not names:
-            names = list(project.backends) if project and project.backends else [
-                "transformers",
-                "vllm",
-                "llamacpp",
-                "ollama",
-            ]
+            names = (
+                list(project.backends)
+                if project and project.backends
+                else [
+                    "transformers",
+                    "vllm",
+                    "llamacpp",
+                    "ollama",
+                ]
+            )
         resolved = resolve_compare(backends=",".join(names))
         backend_results = check_backends(names, resolved=resolved)
         btable = Table(title="Backend health")
@@ -355,25 +353,25 @@ def pull(
 
 @app.command()
 def compare(
-    model: Optional[str] = typer.Option(None, help=f"Model id (default from yaml or {DEFAULT_MODEL})"),
-    backends: Optional[str] = typer.Option(None, help="Comma-separated backends"),
-    baseline: Optional[str] = typer.Option(None),
-    scenario: Optional[Path] = typer.Option(None),
-    name: Optional[str] = typer.Option(None, help="Scenario name inside YAML"),
-    suite: Optional[str] = typer.Option(None, help="Named suite"),
-    config: Optional[Path] = typer.Option(None, help="eleanity.yaml"),
-    profile: Optional[str] = typer.Option(None, help="Named profile from eleanity.yaml"),
-    policy: Optional[str] = typer.Option(None, help="strict|quantized|functional|api_conformance"),
-    observe: Optional[str] = typer.Option(None, help="Comma-separated layers"),
-    redact_prompts: Optional[bool] = typer.Option(None, "--redact-prompts/--no-redact-prompts"),
-    parallel: Optional[bool] = typer.Option(None, "--parallel/--no-parallel"),
-    workers: Optional[int] = typer.Option(None),
-    tokenizer_only: Optional[bool] = typer.Option(None, "--tokenizer-only/--no-tokenizer-only"),
+    model: str | None = typer.Option(None, help=f"Model id (default from yaml or {DEFAULT_MODEL})"),
+    backends: str | None = typer.Option(None, help="Comma-separated backends"),
+    baseline: str | None = typer.Option(None),
+    scenario: Path | None = typer.Option(None),
+    name: str | None = typer.Option(None, help="Scenario name inside YAML"),
+    suite: str | None = typer.Option(None, help="Named suite"),
+    config: Path | None = typer.Option(None, help="eleanity.yaml"),
+    profile: str | None = typer.Option(None, help="Named profile from eleanity.yaml"),
+    policy: str | None = typer.Option(None, help="strict|quantized|functional|api_conformance"),
+    observe: str | None = typer.Option(None, help="Comma-separated layers"),
+    redact_prompts: bool | None = typer.Option(None, "--redact-prompts/--no-redact-prompts"),
+    parallel: bool | None = typer.Option(None, "--parallel/--no-parallel"),
+    workers: int | None = typer.Option(None),
+    tokenizer_only: bool | None = typer.Option(None, "--tokenizer-only/--no-tokenizer-only"),
     no_gates: bool = typer.Option(False, "--no-gates"),
-    backend_url: Optional[list[str]] = typer.Option(None, help="name=url (repeatable)"),
+    backend_url: list[str] | None = typer.Option(None, help="name=url (repeatable)"),
     offline: bool = typer.Option(False, help="HF offline mode"),
     check_backends: bool = typer.Option(False, "--check-backends"),
-    golden: Optional[Path] = typer.Option(None, help="Golden trace to check after compare"),
+    golden: Path | None = typer.Option(None, help="Golden trace to check after compare"),
     repetitions: int = typer.Option(1, help="Self-consistency repetitions before cross-compare"),
     require_self_consistency: bool = typer.Option(
         False, "--require-self-consistency", help="Stabilize each backend before A vs B"
@@ -383,7 +381,7 @@ def compare(
     redact_output: bool = typer.Option(False, "--redact-output"),
     hash_content: bool = typer.Option(False, "--hash-content"),
     allow_remote: bool = typer.Option(False, "--allow-remote"),
-    retention: Optional[str] = typer.Option(None, help="Retention window e.g. 24h, 7d"),
+    retention: str | None = typer.Option(None, help="Retention window e.g. 24h, 7d"),
     format: str = FormatOpt,
 ) -> None:
     """Run the same scenario across backends. Reads eleanity.yaml when flags omitted."""
@@ -538,9 +536,7 @@ def compare(
 
         if golden or resolved.check_golden:
             gpath = golden or (
-                Path(resolved.project.golden_file)
-                if resolved.project and resolved.project.golden_file
-                else None
+                Path(resolved.project.golden_file) if resolved.project and resolved.project.golden_file else None
             )
             if gpath and gpath.is_file():
                 report = golden_gate(
@@ -576,15 +572,15 @@ def compare(
 @app.command(name="test")
 def test_scenario(
     path: Path = typer.Argument(..., help="Scenario YAML, directory, or suite name"),
-    model: Optional[str] = typer.Option(None),
-    backends: Optional[str] = typer.Option(None),
-    config: Optional[Path] = typer.Option(None),
-    policy: Optional[str] = typer.Option(None),
-    observe: Optional[str] = typer.Option(None),
-    tokenizer_only: Optional[bool] = typer.Option(None, "--tokenizer-only/--no-tokenizer-only"),
+    model: str | None = typer.Option(None),
+    backends: str | None = typer.Option(None),
+    config: Path | None = typer.Option(None),
+    policy: str | None = typer.Option(None),
+    observe: str | None = typer.Option(None),
+    tokenizer_only: bool | None = typer.Option(None, "--tokenizer-only/--no-tokenizer-only"),
     no_gates: bool = typer.Option(False, "--no-gates"),
-    redact_prompts: Optional[bool] = typer.Option(None, "--redact-prompts/--no-redact-prompts"),
-    golden: Optional[Path] = typer.Option(None),
+    redact_prompts: bool | None = typer.Option(None, "--redact-prompts/--no-redact-prompts"),
+    golden: Path | None = typer.Option(None),
     format: str = FormatOpt,
     fail_fast: bool = typer.Option(False, "--fail-fast"),
 ) -> None:
@@ -703,14 +699,14 @@ def ci(
     baseline: str = typer.Option(..., help="Baseline model id"),
     candidate: str = typer.Option(..., help="Candidate model id"),
     backend: str = typer.Option("transformers"),
-    scenario: Optional[Path] = typer.Option(None),
-    junit: Optional[Path] = typer.Option(None),
-    config: Optional[Path] = typer.Option(None),
-    policy: Optional[str] = typer.Option(None),
-    observe: Optional[str] = typer.Option(None),
+    scenario: Path | None = typer.Option(None),
+    junit: Path | None = typer.Option(None),
+    config: Path | None = typer.Option(None),
+    policy: str | None = typer.Option(None),
+    observe: str | None = typer.Option(None),
     tokenizer_only: bool = typer.Option(False, "--tokenizer-only"),
     no_gates: bool = typer.Option(False, "--no-gates"),
-    golden: Optional[Path] = typer.Option(None),
+    golden: Path | None = typer.Option(None),
     format: str = FormatOpt,
 ) -> None:
     """CI gate between two models on one backend. Exit 0/1/2."""
@@ -814,13 +810,13 @@ def migrate(
     from_backend: str = typer.Option(..., "--from", help="Source backend"),
     to_backend: str = typer.Option(..., "--to", help="Target backend"),
     model: str = typer.Option(DEFAULT_MODEL),
-    scenario: Optional[Path] = typer.Option(None),
-    suite: Optional[str] = typer.Option(None),
+    scenario: Path | None = typer.Option(None),
+    suite: str | None = typer.Option(None),
     policy: str = typer.Option("strict"),
     tokenizer_only: bool = typer.Option(False, "--tokenizer-only"),
-    backend_url: Optional[list[str]] = typer.Option(None),
+    backend_url: list[str] | None = typer.Option(None),
     format: str = FormatOpt,
-    config: Optional[Path] = typer.Option(None),
+    config: Path | None = typer.Option(None),
 ) -> None:
     """Migration flow: compare from_backend → to_backend on the same model."""
 
@@ -848,10 +844,10 @@ def promote(
     candidate: str = typer.Option(..., help="Candidate model or checkpoint"),
     backend: str = typer.Option("transformers"),
     policy: str = typer.Option("quantized"),
-    scenario: Optional[Path] = typer.Option(None),
+    scenario: Path | None = typer.Option(None),
     tokenizer_only: bool = typer.Option(False, "--tokenizer-only"),
     format: str = FormatOpt,
-    config: Optional[Path] = typer.Option(None),
+    config: Path | None = typer.Option(None),
 ) -> None:
     """Promotion flow: baseline model vs candidate on one backend (quantized-friendly)."""
 
@@ -901,10 +897,10 @@ def vendor_check(
     endpoint: str = typer.Option(..., help="OpenAI-compatible base URL"),
     model: str = typer.Option("default", help="Vendor/API model id"),
     reference: str = typer.Option("transformers", help="Local reference backend"),
-    reference_model: Optional[str] = typer.Option(None, help="Local model id for reference"),
+    reference_model: str | None = typer.Option(None, help="Local model id for reference"),
     format: str = FormatOpt,
     tokenizer_only: bool = typer.Option(False, "--tokenizer-only"),
-    observe: Optional[str] = typer.Option(None, help="Override observe layers"),
+    observe: str | None = typer.Option(None, help="Override observe layers"),
 ) -> None:
     """Vendor check: local reference backend vs remote OpenAI-compatible endpoint."""
 
@@ -916,20 +912,14 @@ def vendor_check(
         observe_layers = (
             [x.strip() for x in observe.split(",") if x.strip()]
             if observe
-            else (
-                ["artifact", "template", "tokens"]
-                if tokenizer_only
-                else ["artifact", "generation", "api"]
-            )
+            else (["artifact", "template", "tokens"] if tokenizer_only else ["artifact", "generation", "api"])
         )
         scenario = Scenario(
             name="vendor-check",
             messages=[{"role": "user", "content": "Reply with one short sentence."}],
             parameters={"temperature": 0, "max_tokens": 32, "seed": 42},
             observe=observe_layers,
-            parity_policy=ParityProfile.API_CONFORMANCE
-            if not tokenizer_only
-            else ParityProfile.STRICT,
+            parity_policy=ParityProfile.API_CONFORMANCE if not tokenizer_only else ParityProfile.STRICT,
         )
         backends = [reference, "openai"]
         if reference == "transformers":
@@ -1036,8 +1026,8 @@ def batch(
     backends: str = typer.Option("fake,fake"),
     suite: str = typer.Option("generic-chat"),
     tokenizer_only: bool = typer.Option(False, "--tokenizer-only"),
-    config: Optional[Path] = typer.Option(None),
-    policy: Optional[str] = typer.Option(None),
+    config: Path | None = typer.Option(None),
+    policy: str | None = typer.Option(None),
     fail_fast: bool = typer.Option(False, "--fail-fast"),
     format: str = FormatOpt,
 ) -> None:
@@ -1068,9 +1058,7 @@ def batch(
             had_error = False
             rows = []
             for m, b, sc in jobs:
-                result = engine.compare(
-                    m, b, scenario=sc, tokenizer_only=tokenizer_only
-                )
+                result = engine.compare(m, b, scenario=sc, tokenizer_only=tokenizer_only)
                 status = getattr(result.diagnosis, "status", None)
                 value = status.value if hasattr(status, "value") else str(status)
                 if value == "ERROR":
@@ -1078,17 +1066,13 @@ def batch(
                     failed += 1
                     rows.append({"model": m, "scenario": sc.name, "status": value, "run_id": result.run_id})
                     break
-                if value == "DIVERGENT" or (
-                    result.gate_evaluation and not result.gate_evaluation.passed
-                ):
+                if value == "DIVERGENT" or (result.gate_evaluation and not result.gate_evaluation.passed):
                     failed += 1
                 rows.append({"model": m, "scenario": sc.name, "status": value, "run_id": result.run_id})
             code = exit_from_batch(failed, had_error=had_error)
         else:
             engine = _engine_from_resolved(resolved)
-            report = run_multi_model_batch(
-                jobs, engine=engine, tokenizer_only=tokenizer_only
-            )
+            report = run_multi_model_batch(jobs, engine=engine, tokenizer_only=tokenizer_only)
             rows = report.summary.get("rows") or []
             code = exit_from_batch(int(report.summary.get("failed") or 0))
             if format == "text":
@@ -1173,7 +1157,7 @@ def gguf_cmd(
 def save_golden_cmd(
     run_id: str = typer.Argument(...),
     backend: str = typer.Option(...),
-    name: Optional[str] = typer.Option(None),
+    name: str | None = typer.Option(None),
     golden_dir: Path = typer.Option(Path(".eleanity/golden")),
     format: str = FormatOpt,
 ) -> None:
@@ -1198,7 +1182,7 @@ def save_golden_cmd(
 def check_golden_cmd(
     run_id: str = typer.Argument(...),
     golden: Path = typer.Option(..., exists=True),
-    backend: Optional[str] = typer.Option(None),
+    backend: str | None = typer.Option(None),
     layers: str = typer.Option("template,tokens,special_tokens"),
     format: str = FormatOpt,
 ) -> None:
@@ -1207,7 +1191,11 @@ def check_golden_cmd(
     try:
         data = load_run(run_id)
         traces = data.get("traces") or []
-        match = next((t for t in traces if t.get("backend") == backend), None) if backend else (traces[0] if traces else None)
+        match = (
+            next((t for t in traces if t.get("backend") == backend), None)
+            if backend
+            else (traces[0] if traces else None)
+        )
         if not match:
             raise config_error("trace not found in run")
         scenario_meta = data.get("scenario") or {}
@@ -1491,7 +1479,7 @@ def stabilize(
     model: str = typer.Option(DEFAULT_MODEL),
     repetitions: int = typer.Option(5, "--repetitions", "-n"),
     threshold: float = typer.Option(1.0, help="Minimum agreement rate (0-1)"),
-    scenario: Optional[Path] = typer.Option(None),
+    scenario: Path | None = typer.Option(None),
     tokenizer_only: bool = typer.Option(False, "--tokenizer-only"),
     format: str = FormatOpt,
 ) -> None:
@@ -1513,9 +1501,7 @@ def stabilize(
             threshold=threshold,
         )
         if format == "quiet":
-            print(
-                f"backend={backend} rate={report.rate} self_consistent={report.self_consistent}"
-            )
+            print(f"backend={backend} rate={report.rate} self_consistent={report.self_consistent}")
         else:
             print(json.dumps(report.to_dict(), indent=2))
         raise typer.Exit(EXIT_OK if report.self_consistent else EXIT_DIVERGENT)
@@ -1531,10 +1517,8 @@ def bisect(
     model: str = typer.Option("demo"),
     good: str = typer.Option(..., help="Known-good version or revision"),
     bad: str = typer.Option(..., help="Known-bad version or revision"),
-    versions: Optional[str] = typer.Option(
-        None, help="Ordered comma list good…bad (optional full path)"
-    ),
-    scenario: Optional[Path] = typer.Option(None),
+    versions: str | None = typer.Option(None, help="Ordered comma list good…bad (optional full path)"),
+    scenario: Path | None = typer.Option(None),
     format: str = FormatOpt,
 ) -> None:
     """Binary-search first bad runtime/model revision (model@rev encoding for fake/CI)."""
@@ -1542,10 +1526,7 @@ def bisect(
     try:
         from eleanity.core.bisect import bisect_model_revisions, parse_version_list
 
-        if versions:
-            revs = parse_version_list(versions)
-        else:
-            revs = [good, bad]
+        revs = parse_version_list(versions) if versions else [good, bad]
         if revs[0] != good:
             revs = [good, *[r for r in revs if r not in {good, bad}], bad]
         engine = CompareEngine(parallel=False)
@@ -1575,7 +1556,7 @@ def bisect_model_cmd(
     bad_revision: str = typer.Option(..., "--bad-revision"),
     model: str = typer.Option(...),
     backend: str = typer.Option("transformers"),
-    revisions: Optional[str] = typer.Option(None, help="Ordered revision list"),
+    revisions: str | None = typer.Option(None, help="Ordered revision list"),
     format: str = FormatOpt,
 ) -> None:
     """Bisect model revisions (wrapper around bisect)."""
@@ -1610,7 +1591,7 @@ def capture(
     source: Path = typer.Argument(..., help="OpenAI-style JSONL traffic file"),
     output: Path = typer.Option(Path("production-suite"), "--output", "-o"),
     redact: bool = typer.Option(True, "--redact/--no-redact"),
-    sample: Optional[int] = typer.Option(None, help="Max records to capture"),
+    sample: int | None = typer.Option(None, help="Max records to capture"),
     hash_content: bool = typer.Option(True, "--hash-content/--no-hash-content"),
     format: str = FormatOpt,
 ) -> None:

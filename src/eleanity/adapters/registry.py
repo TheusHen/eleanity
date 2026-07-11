@@ -100,9 +100,7 @@ def load_plugins() -> None:
         try:
             eps = metadata.entry_points()
             selected = (
-                eps.select(group="eleanity.adapters")
-                if hasattr(eps, "select")
-                else eps.get("eleanity.adapters", [])
+                eps.select(group="eleanity.adapters") if hasattr(eps, "select") else eps.get("eleanity.adapters", [])
             )
             for ep in selected:
                 try:
