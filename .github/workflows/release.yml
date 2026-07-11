@@ -45,9 +45,11 @@ jobs:
             fi
             complete=true
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "complete=$complete" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "complete=$complete"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: astral-sh/setup-uv@v7
         if: steps.release.outputs.complete != 'true'
@@ -69,7 +71,7 @@ jobs:
           uv run pytest -q
           uv build
           cd dist
-          sha256sum * > SHA256SUMS
+          sha256sum -- ./* > SHA256SUMS
 
       - name: Verify package metadata
         if: steps.release.outputs.complete != 'true'
