@@ -28,11 +28,11 @@ messages:
   - role: system
     content: Be brief.
   - role: user
-    content: 1+1?
+    content: "1+1?"
   - role: assistant
-    content: 2
+    content: "2"
   - role: user
-    content: Times 3?
+    content: "Times 3?"
 parameters: { temperature: 0, max_tokens: 8, seed: 42 }
 observe: [template, tokens, generation]
 parity_policy: strict
@@ -58,7 +58,7 @@ name: assistant-prefill
 description: Continue final assistant message
 messages:
   - role: user
-    content: Complete: The capital of France is
+    content: "Complete: The capital of France is"
   - role: assistant
     content: "The capital of France is"
 parameters: { temperature: 0, max_tokens: 8, seed: 42 }

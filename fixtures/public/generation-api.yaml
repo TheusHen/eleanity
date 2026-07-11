@@ -33,7 +33,7 @@ name: structured-json
 description: JSON-shaped functional check
 messages:
   - role: user
-    content: Return {"ok": true} as JSON only
+    content: 'Return {"ok": true} as JSON only'
 parameters: { temperature: 0, max_tokens: 32, seed: 42 }
 observe: [generation, structured]
 parity_policy: functional
