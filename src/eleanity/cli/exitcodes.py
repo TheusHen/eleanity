@@ -17,7 +17,7 @@ def exit_from_diagnosis(
     """Unified exit codes for compare/test/ci/batch."""
 
     status = getattr(diagnosis, "status", None)
-    value = status.value if hasattr(status, "value") else str(status or "")
+    value = str(getattr(status, "value", status or ""))
     if value == ParityResult.ERROR.value:
         return EXIT_CONFIG
     if gate_passed is False:

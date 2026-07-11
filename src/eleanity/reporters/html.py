@@ -363,7 +363,7 @@ def _result_view(result: str) -> dict[str, str]:
 
 def _comparison_view(comparison: dict[str, Any] | None) -> dict[str, Any]:
     comparison = comparison or {}
-    result = _result_view(str(comparison.get("result", "NOT_OBSERVABLE")))
+    result_view: dict[str, Any] = dict(_result_view(str(comparison.get("result", "NOT_OBSERVABLE"))))
     details = comparison.get("details") or {}
     safe_details = []
     for key, value in details.items():
@@ -379,8 +379,8 @@ def _comparison_view(comparison: dict[str, Any] | None) -> dict[str, Any]:
                 "value": _format_detail(key, safe_value),
             }
         )
-    result["details"] = safe_details
-    return result
+    result_view["details"] = safe_details
+    return result_view
 
 
 def _ordered_layers(traces: list[dict[str, Any]]) -> list[str]:
@@ -448,21 +448,22 @@ def _build_charts(
 ) -> dict[str, Any]:
     """Build presentation-ready chart series (rendered as pure SVG/CSS in the template)."""
 
-    status_series = [
+    status_series: list[dict[str, Any]] = [
         {"key": "PASS", "label": "PASS", "value": metrics_pass, "color": "ok"},
         {"key": "TOL", "label": "TOL", "value": metrics_tol, "color": "warn"},
         {"key": "DIV", "label": "DIV", "value": metrics_div, "color": "bad"},
         {"key": "INC", "label": "INC", "value": metrics_inc, "color": "neutral"},
         {"key": "N/O", "label": "N/O", "value": metrics_no, "color": "muted"},
     ]
-    status_total = sum(item["value"] for item in status_series) or 1
+    status_total = sum(int(item["value"]) for item in status_series) or 1
     circ = 251.327  # 2 * pi * 40
     status_cum = 0.0
     donut_segments: list[dict[str, Any]] = []
     for item in status_series:
-        pct = item["value"] / status_total * 100
+        item_value = int(item["value"])
+        pct = item_value / status_total * 100
         item["percent"] = round(pct, 1)
-        if item["value"] > 0:
+        if item_value > 0:
             dash = pct / 100 * circ
             donut_segments.append(
                 {
@@ -493,9 +494,9 @@ def _build_charts(
                     "value": round(float(trace.get("duration_ms") or 0), 1),
                 }
             )
-    max_t = max((item["value"] for item in timing_items), default=1.0) or 1.0
+    max_t = max((float(item["value"]) for item in timing_items), default=1.0) or 1.0
     for item in timing_items:
-        item["percent"] = round(item["value"] / max_t * 100, 1)
+        item["percent"] = round(float(item["value"]) / max_t * 100, 1)
 
     # Layer pipeline scores for heatmap-style strip
     layer_series = []
@@ -663,7 +664,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
             }
 
             if is_baseline:
-                comparison_view = _result_view("REFERENCE")
+                comparison_view: dict[str, Any] = dict(_result_view("REFERENCE"))
                 comparison_view["details"] = []
             else:
                 comparison_view = _comparison_view(candidate_comparisons.get(layer))
@@ -723,7 +724,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
                 "description": "Camada adicional registrada pelo trace.",
             },
         )
-        result = _result_view(aggregate)
+        layer_result = _result_view(aggregate)
         layer_views.append(
             {
                 "key": layer,
@@ -733,7 +734,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
                 "phase": phase,
                 "is_first_divergence": layer == first_divergence,
                 **meta,
-                "result": result,
+                "result": layer_result,
                 "backends": [
                     {
                         "id": backend["id"],
@@ -756,9 +757,9 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    for backend in backend_views:
-        if backend["is_baseline"]:
-            backend.update(
+    for backend_view in backend_views:
+        if backend_view["is_baseline"]:
+            backend_view.update(
                 {
                     "summary_code": "REFERENCE",
                     "summary_label": "baseline pairwise",
@@ -768,13 +769,13 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
             )
             continue
 
-        results = [backend["comparisons"][layer]["code"] for layer in layers]
+        results = [backend_view["comparisons"][layer]["code"] for layer in layers]
         comparable = [result for result in results if result not in {"NOT_OBSERVABLE", "INCOMPARABLE"}]
         backend_first = next(
             (
                 LAYER_META.get(layer, {}).get("label", layer)
                 for layer in layers
-                if backend["comparisons"][layer]["code"] == "DIVERGENT"
+                if backend_view["comparisons"][layer]["code"] == "DIVERGENT"
             ),
             None,
         )
@@ -790,7 +791,7 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
         else:
             summary_code = "PASS"
             summary_label = "parity on comparable layers"
-        backend.update(
+        backend_view.update(
             {
                 "summary_code": summary_code,
                 "summary_label": summary_label,
@@ -846,7 +847,8 @@ def build_report_context(data: dict[str, Any]) -> dict[str, Any]:
 
     propagation = diagnosis.get("propagation_percent")
     propagation_value = float(propagation or 0.0)
-    first_layer_label = LAYER_META.get(first_divergence, {}).get("label", first_divergence or "none")
+    first_divergence_key = str(first_divergence) if first_divergence is not None else ""
+    first_layer_label = LAYER_META.get(first_divergence_key, {}).get("label", first_divergence_key or "none")
     scenario = data.get("scenario") or {}
     profile = scenario.get("parity_profile") or scenario.get("parity_policy")
     tolerance = scenario.get("tolerance")

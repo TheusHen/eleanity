@@ -14,7 +14,7 @@ from eleanity.core.observe import observe as _observe_pipeline
 from eleanity.core.run import compare_trace_layers
 from eleanity.diagnosers import diagnose
 from eleanity.gates.engine import evaluate_gates
-from eleanity.models.schemas import Comparison, ModelSpec, ObservationTrace, Scenario
+from eleanity.models.schemas import Comparison, Message, ModelSpec, ObservationTrace, ParityProfile, Scenario
 from eleanity.policies.engine import PolicyEngine
 from eleanity.scenarios.loader import load_scenarios
 from eleanity.scenarios.suites import load_suite
@@ -55,7 +55,7 @@ def make_scenario(
     spec = ModelSpec(id=model) if model else None
     return Scenario(
         name=name,
-        messages=messages or [{"role": "user", "content": "Hello"}],
+        messages=[Message(**message) for message in messages] if messages else [Message(role="user", content="Hello")],
         observe=observe
         or [
             "artifact",
@@ -64,7 +64,7 @@ def make_scenario(
             "tokens",
             "generation",
         ],
-        parity_profile=policy,
+        parity_profile=ParityProfile(policy),
         parameters=params,
         model=spec,
         backends=backends or [],

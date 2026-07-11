@@ -27,7 +27,7 @@ def exit_from_diagnosis(
     """Map a diagnosis (+ optional gate result) to process exit codes 0/1/2."""
 
     status = getattr(diagnosis, "status", None)
-    value = status.value if hasattr(status, "value") else str(status or "")
+    value = str(getattr(status, "value", status or ""))
     if value == ParityResult.ERROR.value:
         return EXIT_CONFIG
     if gate_passed is False:

@@ -261,7 +261,7 @@ def _special_token_diff(left: dict[str, Any] | None, right: dict[str, Any] | Non
         "padding_side",
         "truncation_side",
     )
-    diff = {}
+    diff: dict[str, Any] = {}
     for key in keys:
         if left.get(key) != right.get(key):
             diff[key] = {"baseline": left.get(key), "candidate": right.get(key)}

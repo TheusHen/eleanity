@@ -158,7 +158,7 @@ def assess_impact(
                     if hasattr(entry, "result")
                     else (entry.get("result") if isinstance(entry, dict) else None)
                 )
-                value = result.value if hasattr(result, "value") else result
+                value = result.value if isinstance(result, ParityResult) else result
                 if value == "DIVERGENT":
                     propagation.append(name)
 

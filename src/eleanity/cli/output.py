@@ -119,7 +119,7 @@ def emit_compare_result(
     quiet_layers: bool = False,
 ) -> int:
     status = getattr(diagnosis, "status", None)
-    status_value = status.value if hasattr(status, "value") else str(status or "UNKNOWN")
+    status_value = str(getattr(status, "value", status or "UNKNOWN"))
     first = getattr(diagnosis, "first_divergence", None)
     prop = getattr(diagnosis, "propagation_percent", None)
     gates_passed = gate_evaluation.passed if gate_evaluation is not None else None

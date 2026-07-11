@@ -31,7 +31,7 @@ def describe_policy(profile: ParityProfile) -> str:
 
 
 def policy_rules(profile: ParityProfile) -> dict[str, object]:
-    return {
+    rules: dict[ParityProfile, dict[str, object]] = {
         ParityProfile.STRICT: {
             "require_identical_prompt_bytes": True,
             "require_identical_token_ids": True,
@@ -72,7 +72,8 @@ def policy_rules(profile: ParityProfile) -> dict[str, object]:
             "openai_compatible_shape": True,
             "logits_tolerance": DEFAULT_TOLERANCE[ParityProfile.API_CONFORMANCE],
         },
-    }[profile]
+    }
+    return rules[profile]
 
 
 def __getattr__(name: str):

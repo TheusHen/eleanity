@@ -11,7 +11,7 @@ from eleanity.core.store import (
 from eleanity.core.store import (
     write_result_json as _write_result_json,
 )
-from eleanity.models.schemas import Comparison, ObservationTrace, Scenario
+from eleanity.models.schemas import Comparison, Message, ObservationTrace, Scenario
 from eleanity.policies.engine import PolicyEngine
 
 __all__ = [
@@ -34,7 +34,7 @@ def compare_trace_layers(
     if scenario is None:
         scenario = Scenario(
             name="ad-hoc",
-            messages=[{"role": "user", "content": "x"}],
+            messages=[Message(role="user", content="x")],
             tolerance=tolerance,
         )
     else:

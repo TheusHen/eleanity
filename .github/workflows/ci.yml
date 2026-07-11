@@ -25,11 +25,8 @@ jobs:
       - run: uv run ruff format --check src tests
 
   typecheck:
-    name: typecheck (mypy, informational)
+    name: typecheck (mypy)
     runs-on: ubuntu-latest
-    # Informational only in 0.4.x alpha — does NOT gate merges.
-    # See ROADMAP.md: promote to hard gate after typing debt is cleared.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v7
@@ -37,16 +34,8 @@ jobs:
           enable-cache: true
       - run: uv python install 3.11
       - run: uv sync --group dev
-      - name: mypy (non-blocking)
-        run: |
-          set +e
-          uv run mypy src/eleanity
-          code=$?
-          echo "mypy_exit=$code" >> "$GITHUB_OUTPUT"
-          if [ "$code" -ne 0 ]; then
-            echo "::warning::mypy reported issues (informational job; not a required check)"
-          fi
-          exit 0
+      - name: mypy
+        run: uv run mypy src/eleanity
 
   unit:
     name: unit (${{ matrix.os }} · py${{ matrix.python-version }})

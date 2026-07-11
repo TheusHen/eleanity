@@ -15,7 +15,7 @@ from eleanity.core.store import write_github_annotations, write_junit, write_res
 from eleanity.diagnosers import diagnose
 from eleanity.fingerprints import collect_environment_fingerprint
 from eleanity.gates.engine import GateEvaluation, evaluate_gates
-from eleanity.models.schemas import ModelSpec, ObservationTrace, Scenario
+from eleanity.models.schemas import Message, ModelSpec, ObservationTrace, Scenario
 from eleanity.policies.engine import PolicyEngine
 from eleanity.reporters.sarif import write_sarif
 from eleanity.utils.logging import get_logger, log_event
@@ -85,7 +85,7 @@ class CompareEngine:
     ) -> CompareResult:
         scenario = scenario or Scenario(
             name="compare",
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[Message(role="user", content="Hello")],
             observe=["template", "tokens", "logits", "generation"],
         )
         tok_only = self.tokenizer_only if tokenizer_only is None else tokenizer_only
@@ -370,7 +370,7 @@ class CompareEngine:
     ) -> tuple[str, dict, Any, GateEvaluation]:
         scenario = scenario or Scenario(
             name="ci",
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[Message(role="user", content="Hello")],
             observe=["template", "tokens", "logits", "generation"],
         )
         if tokenizer_only:

@@ -245,7 +245,10 @@ class VLLMAdapter(OpenAICompatAdapter):
                 )
                 messages = [m.model_dump() for m in scenario.messages]
                 # Prefer chat API if present
-                outputs = self._embedded_llm.chat(messages, sp)  # type: ignore[union-attr]
+                embedded_llm = self._embedded_llm
+                if embedded_llm is None:
+                    raise RuntimeError("embedded vLLM failed to initialize")
+                outputs = embedded_llm.chat(messages, sp)
                 out0 = outputs[0]
                 text = getattr(out0.outputs[0], "text", "") if out0.outputs else ""
                 token_ids = list(getattr(out0.outputs[0], "token_ids", []) or [])

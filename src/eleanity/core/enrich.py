@@ -104,7 +104,7 @@ def enrich_diagnosis(
     # Flatten first candidate comparisons if nested
     flat: dict[str, Any] = {}
     if comparisons:
-        first = next(iter(comparisons.values()), {})
+        first: Any = next(iter(comparisons.values()), {})
         if (
             isinstance(first, dict)
             and first

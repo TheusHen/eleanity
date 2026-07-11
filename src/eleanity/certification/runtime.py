@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from eleanity.adapters.sdk import check_adapter_compliance
-from eleanity.models.schemas import LayerState, Scenario
+from eleanity.models.schemas import LayerState, Message, Scenario
 
 
 @dataclass
@@ -40,7 +40,7 @@ def certify_runtime(adapter: Any, *, model: str = "cert-demo") -> CertificationR
 
     scenario = Scenario(
         name="cert",
-        messages=[{"role": "user", "content": "ping"}],
+        messages=[Message(role="user", content="ping")],
         parameters={"max_tokens": 1, "temperature": 0},
         observe=["template", "tokens", "generation"],
     )

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from eleanity.spec.capsule import ExecutionCapsule
 from eleanity.spec.impact import ImpactAssessment
@@ -21,7 +22,7 @@ def build_trace_document(
     *,
     run_id: str,
     result_payload: dict[str, Any],
-    capsules: dict[str, ExecutionCapsule | dict[str, Any]] | None = None,
+    capsules: Mapping[str, ExecutionCapsule | dict[str, Any]] | None = None,
     impact: ImpactAssessment | dict[str, Any] | None = None,
     stability: dict[str, Any] | None = None,
     privacy_manifest: dict[str, Any] | None = None,
@@ -64,7 +65,7 @@ def build_trace_document(
         if hasattr(cap, "model_dump"):
             subjects[role]["execution_capsule"] = cap.model_dump(mode="json")
 
-    impact_payload = impact.model_dump(mode="json") if hasattr(impact, "model_dump") else impact
+    impact_payload = impact.model_dump(mode="json") if isinstance(impact, ImpactAssessment) else impact
 
     first = diagnosis.get("first_divergence_detail") or {}
     if not first and diagnosis.get("first_divergence"):
@@ -123,16 +124,17 @@ def build_trace_document(
 
 
 def _shared_capsule(
-    capsules: dict[str, Any] | None,
+    capsules: Mapping[str, ExecutionCapsule | dict[str, Any]] | None,
     result_payload: dict[str, Any],
 ) -> dict[str, Any] | None:
     if capsules:
         first = next(iter(capsules.values()))
-        if hasattr(first, "model_dump"):
+        if isinstance(first, ExecutionCapsule):
             return first.model_dump(mode="json")
         if isinstance(first, dict):
-            return first
-    return result_payload.get("execution_capsule")
+            return cast(dict[str, Any], first)
+    capsule = result_payload.get("execution_capsule")
+    return cast(dict[str, Any], capsule) if isinstance(capsule, dict) else None
 
 
 def _propagation_list(diagnosis: dict[str, Any], impact: dict[str, Any] | None) -> list[Any]:

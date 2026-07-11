@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 
 @dataclass
@@ -27,7 +27,8 @@ def _load_result(path: Path) -> dict[str, Any] | None:
     if not result.is_file():
         return None
     try:
-        return json.loads(result.read_text(encoding="utf-8"))
+        parsed = json.loads(result.read_text(encoding="utf-8"))
+        return cast(dict[str, Any], parsed) if isinstance(parsed, dict) else None
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -83,7 +84,10 @@ def load_run(run_id: str, runs_dir: Path | str = ".eleanity/runs") -> dict[str, 
             path = matches[0] / "result.json"
         else:
             raise FileNotFoundError(f"run not found: {run_id}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    parsed = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(parsed, dict):
+        raise ValueError(f"invalid run result: {path}")
+    return cast(dict[str, Any], parsed)
 
 
 def diff_runs(left_id: str, right_id: str, runs_dir: Path | str = ".eleanity/runs") -> dict[str, Any]:
