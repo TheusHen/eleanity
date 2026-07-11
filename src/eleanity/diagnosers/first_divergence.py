@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from eleanity.comparators.diff import compare_prompt, compare_special_tokens, compare_tokens
 from eleanity.diagnosers.rules import (
     actions_for,
@@ -55,7 +57,7 @@ def _snippet(text: str, index: int | None, width: int = 40) -> str:
     return text[start : start + width]
 
 
-def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
+def diagnose(traces: list[ObservationTrace], comparisons: dict[str, Any] | None = None) -> Diagnosis:
     """Rule-based causal diagnoser. Deterministic — no LLM."""
 
     if len(traces) < 2:
@@ -89,7 +91,7 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
         a, b = left.layers.get(layer), right.layers.get(layer)
         if not a or not b:
             continue
-        if a.state == LayerState.ERROR or b.state == LayerState.ERROR:
+        if a.state in {LayerState.ERROR, LayerState.FAILED} or b.state in {LayerState.ERROR, LayerState.FAILED}:
             return Diagnosis(
                 status=ParityResult.ERROR,
                 first_divergence=layer,
@@ -108,6 +110,18 @@ def diagnose(traces: list[ObservationTrace]) -> Diagnosis:
             )
         if a.state != LayerState.OBSERVED or b.state != LayerState.OBSERVED:
             continue
+
+        if comparisons:
+            comp = comparisons.get(layer)
+            if comp:
+                if hasattr(comp, "result"):
+                    res = comp.result.value
+                elif isinstance(comp, dict):
+                    res = comp.get("result")
+                else:
+                    res = str(comp)
+                if res in {ParityResult.PASS.value, ParityResult.PASS_WITH_TOLERANCE.value}:
+                    continue
 
         if layer == "artifact":
             left_view = {key: a.data.get(key) for key in ARTIFACT_KEYS}
