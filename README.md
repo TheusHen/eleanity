@@ -129,13 +129,76 @@ Template diff: PASS
 Token diff:    PASS (count: 31)
 ```
 
-This validates the **engine and Transformers path**. It is not yet a cross-runtime claim.
+This validates the **engine + Transformers path**.
 
 ---
 
-## First-divergence demo (DIVERGENT at template)
+## Cross-runtime DIVERGENT (Transformers × OpenAI-compat HTTP)
 
-Cross-runtime HTTP pairs depend on your local servers. Independently of that, Eleanity localizes a classic failure mode: **one side omits the assistant generation prompt**.
+Real pair: **Transformers (local HF weights)** vs **vLLM adapter** pointed at a local OpenAI-compatible server.
+
+The repo ships a mock server that answers `/v1/chat/completions` but **does not** expose template/tokenize — same honesty profile as many LM Studio / gateway setups.
+
+### Commands (exact)
+
+```bash
+# one process starts mock server, runs doctor + compare, stops server
+uv run python scripts/examples/run_cross_runtime_demo.py
+```
+
+Under the hood:
+
+```bash
+# terminal A (or the helper starts this for you)
+uv run python scripts/examples/mock_openai_diverge.py --port 8765
+
+# terminal B
+export ELEANITY_VLLM_URL=http://127.0.0.1:8765
+uv run eleanity doctor --check-backends --backends vllm --format json
+uv run eleanity compare \
+  --model HuggingFaceTB/SmolLM2-135M-Instruct \
+  --backends transformers,vllm \
+  --backend-url vllm=http://127.0.0.1:8765 \
+  --policy quantized \
+  --format quiet --no-parallel --no-gates \
+  --observe artifact,template,tokens,generation,api
+```
+
+### Exact quiet output (live run)
+
+```text
+status=DIVERGENT impact=HIGH coverage=50.0 confidence=0.762 first_divergence=generation gates=False run_id=ca69f154-5c0e-4a81-8401-f81fed942ab0
+```
+
+| Field | Value |
+| --- | --- |
+| Baseline | transformers · `HuggingFaceTB/SmolLM2-135M-Instruct` (HF bf16 safetensors) |
+| Candidate | vllm adapter → `http://127.0.0.1:8765` (OpenAI-compat mock) |
+| Policy | `quantized` |
+| Status | **DIVERGENT** |
+| First divergence | **generation** |
+| Coverage | **50%** required layers (template/tokens not mutually observed) |
+| Verified | artifact, generation |
+| Not verified | template (`NOT_SUPPORTED` on HTTP), tokens (`NOT_EXPOSED` on HTTP) |
+| Generation texts | transformers: `Hello! How can I help you today?` · HTTP: `hi from divergent mock (...)` |
+| Engine total | ~9785 ms |
+
+Reproduction command stored on the run:
+
+```text
+eleanity compare --model HuggingFaceTB/SmolLM2-135M-Instruct --backends transformers,vllm \
+  --baseline transformers --policy quantized \
+  --observe artifact,template,tokens,generation,api --no-gates \
+  --backend-url vllm=http://127.0.0.1:8765 --format text
+```
+
+This is the cross-stack claim: **different runtimes, localized first divergence, honest missing layers**.
+
+---
+
+## Template first-divergence (character-level)
+
+Classic chat-template bug (missing assistant generation prompt), fully localized:
 
 ```bash
 uv run python scripts/examples/demo_template_divergence.py
@@ -144,59 +207,16 @@ uv run python scripts/examples/demo_template_divergence.py
 Exact output (live run):
 
 ```text
-=== Eleanity first-divergence demo ===
-model:     org/demo-model
-baseline:  fake (add_generation_prompt=true)
-candidate: candidate-no-agp (omits assistant turn)
-policy:    strict
-
 status:            DIVERGENT
 first_divergence:  template
 character:         11
 byte:              11
-baseline_snippet:  "
-assistant:"
-candidate_snippet: ""
-
-baseline template:
-'user: Hello\nassistant:'
-candidate template:
-'user: Hello'
-
-template comparison: DIVERGENT
-first_character:     11
-first_byte:          11
-
-probable_cause: [CHAT_TEMPLATE_DIFFERENT] conf=0.92
-  Chat template hash differs between backends.
-
-summary: First divergence is in the chat template at character 11. After that,
-100.0% of tokens differ from index 11. Likely cause: Chat template hash differs
-between backends.
+baseline template: 'user: Hello\nassistant:'
+candidate template:'user: Hello'
+probable_cause:    [CHAT_TEMPLATE_DIFFERENT] conf=0.92
 ```
 
-That is the core product claim: **layer + character index + snippets + cause code**, not only “outputs differ”.
-
-### Cross-runtime (Transformers × OpenAI-compatible server)
-
-When a server is available (vLLM serve, LM Studio, etc.):
-
-```bash
-export ELEANITY_VLLM_URL=http://127.0.0.1:1234   # no trailing /v1
-uv run eleanity doctor --check-backends --backends vllm --format json
-
-# Same logical model, two stack IDs (example names)
-# transformers: HuggingFaceTB/SmolLM2-135M-Instruct
-# server:       huggingfacetb.smollm2-135m-instruct
-uv run eleanity compare --config eleanity.yaml \
-  --backends transformers,vllm \
-  --backend-url vllm=http://127.0.0.1:1234 \
-  --policy quantized \
-  --format text --no-gates
-```
-
-Expect honest partial observability on HTTP (template/tokens often `NOT_EXPOSED`).  
-A green generation with missing template layers should surface as **`PASS_WITH_LIMITED_COVERAGE`**, not a silent full PASS. See [docs/adapter-capabilities.md](docs/adapter-capabilities.md).
+More write-ups: [docs/examples/first-divergence.md](docs/examples/first-divergence.md).
 
 ---
 
