@@ -4,7 +4,8 @@ name: release
 # published yet. Version changes are reviewed like normal source changes.
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -17,10 +18,17 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Resolve version and release state
         id: release
@@ -28,31 +36,49 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+
           version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' pyproject.toml)"
           source_version="$(sed -n 's/^__version__ = "\([^"]*\)"$/\1/p' src/eleanity/version.py)"
-          test -n "$version"
+
+          if [ -z "$version" ]; then
+            echo "::error::Could not determine version from pyproject.toml"
+            exit 1
+          fi
+
+          if [ -z "$source_version" ]; then
+            echo "::error::Could not determine version from src/eleanity/version.py"
+            exit 1
+          fi
+
           if [ "$version" != "$source_version" ]; then
             echo "::error::pyproject version ($version) differs from package version ($source_version)"
             exit 1
           fi
+
           tag="v${version}"
           complete=false
-          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null && gh release view "$tag" >/dev/null 2>&1; then
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
             tag_sha="$(git rev-list -n 1 "$tag")"
+
             if [ "$tag_sha" != "$GITHUB_SHA" ]; then
               echo "::error::$tag already belongs to $tag_sha, not $GITHUB_SHA"
               exit 1
             fi
-            complete=true
+
+            if gh release view "$tag" >/dev/null 2>&1; then
+              complete=true
+            fi
           fi
+
           {
             echo "version=$version"
             echo "tag=$tag"
             echo "complete=$complete"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: astral-sh/setup-uv@v7
-        if: steps.release.outputs.complete != 'true'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
 
@@ -64,12 +90,14 @@ jobs:
         if: steps.release.outputs.complete != 'true'
         run: |
           set -euo pipefail
+
           uv sync --group dev
           uv run ruff check src tests
           uv run ruff format --check src tests
           uv run mypy src/eleanity
           uv run pytest -q
           uv build
+
           cd dist
           sha256sum -- ./* > SHA256SUMS
 
@@ -78,6 +106,8 @@ jobs:
         env:
           VERSION: ${{ steps.release.outputs.version }}
         run: |
+          set -euo pipefail
+
           python - <<'PY'
           import os
           import re
@@ -85,15 +115,34 @@ jobs:
           from pathlib import Path
 
           expected = os.environ["VERSION"]
+
           wheels = list(Path("dist").glob("*.whl"))
           sdists = list(Path("dist").glob("*.tar.gz"))
-          assert len(wheels) == 1 and len(sdists) == 1
-          assert wheels[0].name.startswith(f"eleanity-{expected}-")
-          assert sdists[0].name.startswith(f"eleanity-{expected}")
+
+          assert len(wheels) == 1, (
+              f"Expected exactly one wheel, found: {wheels}"
+          )
+          assert len(sdists) == 1, (
+              f"Expected exactly one source distribution, found: {sdists}"
+          )
+
+          assert wheels[0].name.startswith(f"eleanity-{expected}-"), wheels[0].name
+          assert sdists[0].name.startswith(f"eleanity-{expected}"), sdists[0].name
+
           with zipfile.ZipFile(wheels[0]) as wheel:
-              metadata = next(name for name in wheel.namelist() if name.endswith("METADATA"))
-              match = re.search(r"(?m)^Version:\s*(.+)$", wheel.read(metadata).decode("utf-8"))
-          assert match and match.group(1).strip() == expected
+              metadata_files = [
+                  name
+                  for name in wheel.namelist()
+                  if name.endswith(".dist-info/METADATA")
+              ]
+
+              assert len(metadata_files) == 1, metadata_files
+
+              metadata = wheel.read(metadata_files[0]).decode("utf-8")
+              match = re.search(r"(?m)^Version:\s*(.+)$", metadata)
+
+          assert match, "Version field not found in wheel metadata"
+          assert match.group(1).strip() == expected
           PY
 
       - name: Publish to PyPI
@@ -102,16 +151,22 @@ jobs:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           set -euo pipefail
+
           if [ -z "${UV_PUBLISH_TOKEN:-}" ]; then
             echo "::error::Missing repository secret PYPI_API_TOKEN."
             exit 1
           fi
+
           set +e
           output="$(uv publish --token "$UV_PUBLISH_TOKEN" 2>&1)"
           code=$?
           set -e
+
           echo "$output"
-          if [ "$code" -ne 0 ] && ! echo "$output" | grep -qiE 'already exists|File already exists|403.*already'; then
+
+          if [ "$code" -ne 0 ] &&
+             ! echo "$output" | grep -qiE \
+               'already exists|file already exists|403.*already'; then
             exit "$code"
           fi
 
@@ -121,11 +176,23 @@ jobs:
           TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
+
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            test "$(git rev-list -n 1 "$TAG")" = "$GITHUB_SHA"
+            tag_sha="$(git rev-list -n 1 "$TAG")"
+
+            if [ "$tag_sha" != "$GITHUB_SHA" ]; then
+              echo "::error::$TAG points to $tag_sha instead of $GITHUB_SHA"
+              exit 1
+            fi
+
+            echo "Tag $TAG already exists on the correct commit."
           else
-            git tag -a "$TAG" -m "Eleanity $TAG"
-            git push origin "$TAG"
+            git tag \
+              --annotate "$TAG" \
+              --message "Eleanity $TAG" \
+              "$GITHUB_SHA"
+
+            git push origin "refs/tags/$TAG"
           fi
 
       - name: Create GitHub release
@@ -135,8 +202,14 @@ jobs:
           TAG: ${{ steps.release.outputs.tag }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
+          set -euo pipefail
+
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
-            gh release create "$TAG" dist/* --title "v${VERSION}" --generate-notes --verify-tag
+            gh release create "$TAG" \
+              dist/* \
+              --title "v${VERSION}" \
+              --generate-notes \
+              --verify-tag
           fi
