@@ -130,9 +130,12 @@ class CompareEngine:
         )
 
         traces = self._collect_traces(ordered, model, scenario, baseline_backend, tok_only)
-        diagnosis = diagnose(traces)
         comparisons = build_pairwise_matrix(traces, scenario, baseline_index=0)
         consensus = consensus_summary(traces, scenario)
+        flat_comps = {}
+        if comparisons:
+            flat_comps = next(iter(comparisons.values()), {})
+        diagnosis = diagnose(traces, flat_comps)
 
         # Coverage + enrichment (limited coverage, confidence, verified sets)
         from eleanity.core.coverage import build_reproduction_command, format_timings
@@ -394,7 +397,7 @@ class CompareEngine:
         )
         engine = PolicyEngine(scenario)
         comparisons = engine.compare_layers(baseline, candidate)
-        diagnosis = diagnose([baseline, candidate])
+        diagnosis = diagnose([baseline, candidate], comparisons)
         cmp_map = {backend: {layer: comparison.model_dump(mode="json") for layer, comparison in comparisons.items()}}
         gate_eval = evaluate_gates(self.gates, cmp_map, diagnosis_status=getattr(diagnosis, "status", None))
         run_id = str(uuid4())
