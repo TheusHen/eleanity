@@ -78,7 +78,7 @@ uv run eleanity --help
 ```bash
 pip install eleanity
 # pin the stable API line:
-pip install "eleanity==1.0.0"
+pip install "eleanity==1.2.0"
 ```
 
 When a reviewed version change reaches `main`, [`release.yml`](.github/workflows/release.yml)
