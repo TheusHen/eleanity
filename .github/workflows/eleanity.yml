@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload run artifacts
         if: always() && steps.compare.outputs.run_id != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eleanity-run
           path: .eleanity/runs/${{ steps.compare.outputs.run_id }}
